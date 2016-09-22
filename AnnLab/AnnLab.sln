@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{C951DF24-636D-463B-B893-120BCB627350}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{FEE98B61-6641-4F17-B6F6-719C434B623D}"
+	ProjectSection(SolutionItems) = preProject
+		global.json = global.json
+	EndProjectSection
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "AnnLab", "src\AnnLab\AnnLab.xproj", "{57ADB6FA-68F0-4472-B43E-4140C175CCC1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{57ADB6FA-68F0-4472-B43E-4140C175CCC1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{57ADB6FA-68F0-4472-B43E-4140C175CCC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{57ADB6FA-68F0-4472-B43E-4140C175CCC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{57ADB6FA-68F0-4472-B43E-4140C175CCC1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{57ADB6FA-68F0-4472-B43E-4140C175CCC1} = {C951DF24-636D-463B-B893-120BCB627350}
+	EndGlobalSection
+EndGlobal
