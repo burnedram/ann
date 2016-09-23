@@ -9,6 +9,57 @@ using System.Collections;
 namespace AnnLab
 {
 
+    public class Row<TVal> : IEnumerable<TVal>
+    {
+        public IEnumerable<TVal> IEnum;
+        public Row(IEnumerable<TVal> row)
+        {
+            IEnum = row;
+        }
+
+        public IEnumerator<TVal> GetEnumerator()
+        {
+            return IEnum.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return IEnum.GetEnumerator();
+        }
+    }
+
+    public class Column<TVal> : IEnumerable<TVal>
+    {
+        public IEnumerable<TVal> IEnum;
+        public Column(IEnumerable<TVal> row)
+        {
+            IEnum = row;
+        }
+
+        public IEnumerator<TVal> GetEnumerator()
+        {
+            return IEnum.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return IEnum.GetEnumerator();
+        }
+    }
+
+    public static class RowColumnExt
+    {
+        public static Row<TVal> AsRow<TVal>(this IEnumerable<TVal> row)
+        {
+            return new Row<TVal>(row);
+        }
+
+        public static Column<TVal> AsColumn<TVal>(this IEnumerable<TVal> col)
+        {
+            return new Column<TVal>(col);
+        }
+    }
+
     public class Matrix<TVal> : IEnumerable<IEnumerable<TVal>>, IEnumerable
     {
 
@@ -42,22 +93,38 @@ namespace AnnLab
                 _matrix[i, j] = value;
             }
         }
-        public IEnumerable<TVal> Row(int i)
+        public Row<TVal> Row(int i)
+        {
+            return new Row<TVal>(_row(i));
+        }
+        private IEnumerable<TVal> _row(int i)
         {
             for (int j = 0; j < Cols; j++)
                 yield return _matrix[i, j];
         }
-        public IEnumerable<TVal> Col(int j)
+        public Column<TVal> Col(int j)
+        {
+            return new Column<TVal>(_col(j));
+        }
+        private IEnumerable<TVal> _col(int j)
         {
             for (int i = 0; i < Rows; i++)
                 yield return _matrix[i, j];
         }
-        public IEnumerable<TVal> Row(int i, RangeWrapper jRange)
+        public Row<TVal> Row(int i, RangeWrapper jRange)
+        {
+            return new Row<TVal>(_row(i, jRange));
+        }
+        private IEnumerable<TVal> _row(int i, RangeWrapper jRange)
         {
             foreach (int j in jRange.Range(Cols))
                 yield return _matrix[i, j];
         }
-        public IEnumerable<TVal> Col(int j, RangeWrapper iRange)
+        public Column<TVal> Col(int j, RangeWrapper iRange)
+        {
+            return new Column<TVal>(_col(j, iRange));
+        }
+        private IEnumerable<TVal> _col(int j, RangeWrapper iRange)
         {
             foreach (int i in iRange.Range(Rows))
                 yield return _matrix[i, j];
@@ -118,7 +185,7 @@ namespace AnnLab
                     throw new InvalidOperationException("Source is larger than destination, [" + iRange.Count() + ", " + jRange.Count() + "] = [" + value.Count() + ", ?]");
             }
         }
-        public IEnumerable<TVal> this[int i, RangeWrapper jRange]
+        public Row<TVal> this[int i, RangeWrapper jRange]
         {
             get
             {
@@ -129,7 +196,7 @@ namespace AnnLab
                 this[(RangeWrapper)i, jRange] = Enumerable.Repeat(value, 1);
             }
         }
-        public IEnumerable<TVal> this[RangeWrapper iRange, int j]
+        public Column<TVal> this[RangeWrapper iRange, int j]
         {
             get
             {
@@ -137,7 +204,7 @@ namespace AnnLab
             }
             set
             {
-                this[iRange, (RangeWrapper)j] = Enumerable.Repeat(value, 1);
+                this[iRange, (RangeWrapper)j] = value.Select(x => Enumerable.Repeat(x, 1));
             }
         }
         public IEnumerable<IEnumerable<TVal>> this[RangeWrapper iRange]
@@ -151,7 +218,7 @@ namespace AnnLab
                 this[iRange, Ranges.All] = value;
             }
         }
-        public IEnumerable<TVal> this[int i]
+        public Row<TVal> this[int i]
         {
             get
             {
@@ -236,6 +303,21 @@ namespace AnnLab
 
                 return B;
             }
+        }
+
+        public IEnumerable<T> SelectRowsM<T>(Func<Matrix<TVal>, T> op)
+        {
+            return SelectRows(row =>
+            {
+                Matrix<TVal> m = row;
+                return op(m);
+            });
+        }
+
+        public IEnumerable<T> SelectRows<T>(Func<Row<TVal>, T> op)
+        {
+            for (int i = 0; i < Rows; i++)
+                yield return op(Row(i));
         }
 
         public Matrix<TVal> UnaryOp(Func<TVal, TVal> op)
@@ -383,6 +465,20 @@ namespace AnnLab
                     B[i, j] = B._math.Cast(A[i, j]);
 
             return B;
+        }
+
+        public static implicit operator Matrix<TVal>(Row<TVal> row)
+        {
+            Matrix<TVal> ret = new Matrix<TVal>(1, row.Count());
+            ret[0, Ranges.All] = row;
+            return ret;
+        }
+
+        public static implicit operator Matrix<TVal>(Column<TVal> col)
+        {
+            Matrix<TVal> ret = new Matrix<TVal>(col.Count(), 1);
+            ret[Ranges.All, 0] = col;
+            return ret;
         }
 
         private class InPlaceGuard : IDisposable
