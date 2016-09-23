@@ -1,13 +1,15 @@
-﻿using System;
+﻿using AnnLab.Range;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using System.Collections;
 
 namespace AnnLab
 {
 
-    public class Matrix<TVal>
+    public class Matrix<TVal> : IEnumerable<IEnumerable<TVal>>, IEnumerable
     {
 
         /// <summary>
@@ -17,6 +19,16 @@ namespace AnnLab
         public bool ModifyInPlace { get; private set; } = false;
 
         private readonly IMathLib<TVal> _math;
+
+        /* IEnumerable<IEnumerable<TVal>>
+         *    ^^^^^       ^^^^^     ^^^^
+         *    outer       inner     vals
+
+         * Example: Outer has length 2, inner has length 3,
+         *          or there are 2 rows and 3 columns
+         * 0 1 2
+         * 3 4 5
+         */
 
         private readonly TVal[,] _matrix;
         public TVal this[int i, int j]
@@ -30,33 +42,129 @@ namespace AnnLab
                 _matrix[i, j] = value;
             }
         }
-        public TVal this[int i]
+        public IEnumerable<TVal> Row(int i)
+        {
+            for (int j = 0; j < Cols; j++)
+                yield return _matrix[i, j];
+        }
+        public IEnumerable<TVal> Col(int j)
+        {
+            for (int i = 0; i < Rows; i++)
+                yield return _matrix[i, j];
+        }
+        public IEnumerable<TVal> Row(int i, RangeWrapper jRange)
+        {
+            foreach (int j in jRange.Range(Cols))
+                yield return _matrix[i, j];
+        }
+        public IEnumerable<TVal> Col(int j, RangeWrapper iRange)
+        {
+            foreach (int i in iRange.Range(Rows))
+                yield return _matrix[i, j];
+        }
+        public IEnumerable<IEnumerable<TVal>> this[RangeWrapper iRangeW, RangeWrapper jRangeW]
         {
             get
             {
-                return _matrix[i, 0];
+                foreach (int i in iRangeW.Range(Rows))
+                    yield return Row(i, jRangeW);
             }
             set
             {
-                _matrix[i, 0] = value;
+                if (value is Matrix<TVal> && iRangeW.WrappedRange is IContinousRange && jRangeW.WrappedRange is IContinousRange)
+                {
+                    Matrix<TVal> B = (Matrix<TVal>)value;
+                    IContinousRange iRangeC = (IContinousRange)iRangeW.WrappedRange;
+                    IContinousRange jRangeC = (IContinousRange)jRangeW.WrappedRange;
+                    int iMin = iRangeC.Min(Rows), iMax = iRangeC.Max(Rows);
+                    int jMin = jRangeC.Min(Cols), jMax = jRangeC.Max(Cols);
+                    //iMax = Math.Min(iMax, iMin + B.Rows - 1);
+                    if (B.Rows > iMax - iMin + 1 || B.Cols > jMax - jMin + 1)
+                        throw new InvalidOperationException("Source is larger than destination, [" + (iMax - iMin + 1) + ", " + (jMax - jMin + 1) + "] = [" + B.Rows + ", " + B.Cols + "]");
+
+                    int nRows = Math.Min(iMax - iMin + 1, B.Rows);
+                    if (Cols == B.Cols && jMin == 0 && jMax == Cols - 1)
+                    {
+                        // We can copy the entire array in one go, since both src and dst spans entire rows (and has the same length)
+                        Array.Copy(B._matrix, 0, _matrix, Cols * iMin, Cols * nRows);
+                        return;
+                    }
+
+                    int rowSize = Math.Min(jMax - jMin + 1, B.Cols); // Don't copy more than what exists in a src row
+                    // Copy row by row
+                    for (int i = 0; i < nRows; i++)
+                        Array.Copy(B._matrix, B.Cols * i, _matrix, Cols * (iMin + i) + jMin, rowSize);
+                    return;
+                }
+
+                IEnumerator<IEnumerable<TVal>> iEnumerator = value.GetEnumerator();
+                var iRange = iRangeW.Range(Rows);
+                var jRange = jRangeW.Range(Cols);
+                foreach (int i in iRange)
+                {
+                    if (!iEnumerator.MoveNext())
+                        return; // Not enough values in src
+                    IEnumerator<TVal> jEnumerator = iEnumerator.Current.GetEnumerator();
+                    foreach (int j in jRange)
+                    {
+                        if (!jEnumerator.MoveNext())
+                            break; // Not enough values in src row
+                        _matrix[i, j] = jEnumerator.Current;
+                    }
+                    if (jEnumerator.MoveNext())
+                        throw new InvalidOperationException("Source is larger than destination, [" + iRange.Count() + ", " + jRange.Count() + "] = [" + value.Count() + ", " + iEnumerator.Current.Count() + "]");
+                }
+                if (iEnumerator.MoveNext())
+                    throw new InvalidOperationException("Source is larger than destination, [" + iRange.Count() + ", " + jRange.Count() + "] = [" + value.Count() + ", ?]");
+            }
+        }
+        public IEnumerable<TVal> this[int i, RangeWrapper jRange]
+        {
+            get
+            {
+                return Row(i, jRange);
+            }
+            set
+            {
+                this[(RangeWrapper)i, jRange] = Enumerable.Repeat(value, 1);
+            }
+        }
+        public IEnumerable<TVal> this[RangeWrapper iRange, int j]
+        {
+            get
+            {
+                return Col(j, iRange);
+            }
+            set
+            {
+                this[iRange, (RangeWrapper)j] = Enumerable.Repeat(value, 1);
+            }
+        }
+        public IEnumerable<IEnumerable<TVal>> this[RangeWrapper iRange]
+        {
+            get
+            {
+                return this[iRange, Ranges.All];
+            }
+            set
+            {
+                this[iRange, Ranges.All] = value;
+            }
+        }
+        public IEnumerable<TVal> this[int i]
+        {
+            get
+            {
+                return Row(i);
+            }
+            set
+            {
+                this[i, Ranges.All] = value;
             }
         }
 
-        private readonly int _rows, _cols;
-        public int Rows
-        {
-            get
-            {
-                return _rows;
-            }
-        }
-        public int Cols
-        {
-            get
-            {
-                return _cols;
-            }
-        }
+        public int Rows { get; }
+        public int Cols { get; }
 
         /// <summary>
         /// Constructs an N*1 matrix, i.e. a row vector
@@ -76,9 +184,9 @@ namespace AnnLab
             if (rows <= 0 || cols <= 0)
                 throw new ArgumentOutOfRangeException("rows/cols must be larger than 0");
             _math = MathLib.Get<TVal>();
-            _rows = rows;
-            _cols = cols;
-            _matrix = new TVal[_rows, _cols];
+            Rows = rows;
+            Cols = cols;
+            _matrix = new TVal[rows, cols];
         }
 
         /// <summary>
@@ -88,9 +196,9 @@ namespace AnnLab
         public Matrix(Matrix<TVal> A)
         {
             _math = A._math;
-            _rows = A._rows;
-            _cols = A._cols;
-            _matrix = new TVal[_rows, _cols];
+            Rows = A.Rows;
+            Cols = A.Cols;
+            _matrix = new TVal[Rows, Cols];
             Array.Copy(A._matrix, _matrix, _matrix.Length);
         }
 
@@ -133,13 +241,19 @@ namespace AnnLab
         public Matrix<TVal> UnaryOp(Func<TVal, TVal> op)
         {
             Matrix<TVal> A = this;
+            return SetEach((i, j) => op(A[i, j]));
+        }
+
+        public Matrix<TVal> SetEach(Func<int, int, TVal> op)
+        {
+            Matrix<TVal> A = this;
             using (var inplace = new InPlaceGuard(A))
             {
                 Matrix<TVal> B = inplace.Matrix;
 
                 for (int i = 0; i < A.Rows; i++)
                     for (int j = 0; j < A.Cols; j++)
-                        B[i, j] = op(A[i, j]);
+                        B[i, j] = op(i, j);
 
                 return B;
             }
@@ -175,6 +289,17 @@ namespace AnnLab
 
                 return C;
             }
+        }
+
+        public IEnumerator<IEnumerable<TVal>> GetEnumerator()
+        {
+            for (int i = 0; i < Rows; i++)
+                yield return Row(i);
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            throw new NotImplementedException();
         }
 
         public static Matrix<TVal> operator +(Matrix<TVal> A, Matrix<TVal> B)
