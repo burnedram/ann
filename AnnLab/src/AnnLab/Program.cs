@@ -27,16 +27,31 @@ namespace AnnLab
             }
         }
 
-        static void InitWeights(Matrix<double> W, Matrix<int>[] patterns)
+        static Matrix<double> InitWeights(int N, Matrix<int>[] patterns)
         {
-            W.InPlace().SetAll(0);
+            /* Naive version, does not take in consideration that W is symmetric
+             * This is at least 2 times slower than the code below it
+            Matrix<double> W = new Matrix<double>(N, N);
             foreach (var mat in patterns)
             {
-                Matrix<double> dmat = mat; // this skips an unnecessary implicit conversion
+                Matrix<double> dmat = mat; // This skips an implicit conversion
                 W = W.InPlace() + dmat * ~dmat;
             }
-            W = W.InPlace() / patterns.Length;
             W.InPlace().SetDiagonal(0);
+            return W;
+            */
+            Matrix<int> W = new Matrix<int>(N, N);
+            foreach (var mat in patterns)
+            {
+                for (int i = 1; i < N; i++)
+                    for (int j = i + 1; j < N; j++)
+                        W[i, j] += mat[i, 0] * mat[j, 0];
+            }
+            for (int i = 1; i < N; i++)
+                for (int j = i + 1; j < N; j++)
+                    W[j, i] = W[i, j];
+            Matrix<double> Wd = W;
+            return Wd.InPlace() / patterns.Length;
         }
 
         static void GenPatterns(Matrix<int>[] patterns, int N)
@@ -68,16 +83,15 @@ namespace AnnLab
             Matrix<int>[] patterns = new Matrix<int>[job.p];
             GenPatterns(patterns, job.N);
 
-            Matrix<double> W = new Matrix<double>(job.N, job.N);
-            InitWeights(W, patterns);
+            Matrix<double> W = InitWeights(job.N, patterns);
 
             var res = new JobResult
             {
                 Job = job,
                 AverageErrorRate = Enumerable.Range(0, job.p).Select(i => patterns[i]).Average(state =>
                 {
-                    Matrix<double> nextState = (W * state).InPlace().UnaryOp(si => si >= 0 ? 1 : -1);
-                    int errors = state.Col(0).Zip(nextState.Col(0), (sj, si) => sj == si).Count(b => !b);
+                    // Count number of errors after one update
+                    int errors = (W * state).Col(0).Zip(state.Col(0), (si, sj) => (si >= 0) == (sj == 1)).Count(b => !b);
                     return errors / (double)job.N;
                 })
             };
