@@ -1,4 +1,6 @@
-function outfile = Task1Grapher(file, polycount)
+% See http://se.mathworks.com/help/curvefit/list-of-library-models-for-curve-and-surface-fitting.html#btbcvnl
+% for what fittype can be
+function outfile = Task1Grapher(file, fittype)
 fileID = fopen(file, 'r');
 if fileID == -1
     disp('Unable to open file');
@@ -9,7 +11,7 @@ A = fscanf(fileID, spec, [4 Inf])';
 fclose(fileID);
 
 [path, name, ~] = fileparts(file);
-outfile = sprintf('%s_%d.png', name, polycount);
+outfile = sprintf('%s_%s.png', name, fittype);
 outname = outfile;
 if path ~= ''
     outfile = strcat([path, filesep, outfile]);
@@ -17,48 +19,52 @@ end
 
 x = A(:, 1);
 y = A(:, 2);
-f = fit(x, y, sprintf('poly%d', polycount)); % Curve fitting toolbox
+f = fit(x, y, fittype); % Curve fitting toolbox
 stdmaxx = max(x);
-%solx = solveCfitEq(f, 1) % Symbolic math toolbox
+maxfindx = stdmaxx * 100;
 
 % Calculate x limits
-coeffs = coeffvalues(f);
-coeffs(length(coeffs)) = coeffs(length(coeffs)) - 1;
-eqone = roots(coeffs);
-eqone = eqone(imag(eqone) == 0);
-eqone = eqone(eqone > stdmaxx);
-if ~isempty(eqone)
-    maxx = min(eqone);
+eqone = findRoots(f, 1, stdmaxx, maxfindx);
+eqonereal = eqone(imag(eqone) == 0);
+eqzero = findRoots(f, 0, stdmaxx, maxfindx);
+eqzeroreal = eqzero(imag(eqzero) == 0);
+eqalmostzero = findRoots(f, realmin, stdmaxx, maxfindx);
+eqalmostzeroreal = eqalmostzero(imag(eqalmostzero) == 0);
+if ~isempty(eqonereal)
+    maxx = min(eqonereal);
+elseif ~isempty(eqzeroreal)
+    maxx = min(eqzeroreal);
+elseif ~isempty(eqalmostzeroreal)
+    maxx = min(eqalmostzeroreal);
+elseif ~isempty(eqone)
+    maxx = max(real(eqone));
+elseif ~isempty(eqzero)
+    maxx = min(real(eqzero));
+elseif ~isempty(eqalmostzero)
+    maxx = min(real(eqalmostzero));
 else
-    extremes_x = roots(polyder(coeffvalues(f)));
-    extremes_x = extremes_x(extremes_x > stdmaxx);
-    if isempty(extremes_x)
-        maxx = stdmaxx;
-    else
-        extremes_y = f(extremes_x);
-        [~, extremes_i] = max(extremes_y);
-        maxx  = extremes_x(extremes_i);
-    end
+    maxx = maxfindx;
 end
 
 h = figure('Name', outname, 'NumberTitle', 'off');
 scatter(x, y, '.');
-xlim([0, maxx]);
+xlim([realmin, maxx]);
 
 hold on;
 plot(f);
 legend({'Computed error rates', 'Fitted curve'}, 'Location', 'Best');
 xlabel('p/N');
 ylabel('P_e_r_r_o_r');
-title(sprintf('Fitted on a polynomial with degree %d', polycount));
+title(fittype);
 saveas(h, outfile);
 end
 
-function res = solveCfitEq(fit, eq)
-syms x;
+function res = findRoots(fit, eq, gt, lt)
+syms x z;
 f = cfitToFunc(fit);
-solx = solve(f == eq, x);
+solx = vpasolve(f == eq, x, [gt lt]);% Symbolic math toolbox
 res = eval(solx);
+%res = res(res > gt);
 end
 
 function f = cfitToFunc(fit)
@@ -70,7 +76,19 @@ for fitindex = 1:length(names)
     assign(name, values(fitindex));
 end
 syms x;
-eval(strcat(['f = ', formula(fit), ';']));
+cmd = strcat(['f = ', formula(fit), ';']);
+eval(repairBrokenString(cmd));
+end
+
+% Removes newlines and multiple whitespaces in a row
+function str = repairBrokenString(str)
+    newline = sprintf('\n');
+    str = strrep(str, newline, '');
+    strippedstr = strrep(str, '  ', ' ');
+    while ~strcmp(str, strippedstr)
+        str = strippedstr;
+        strippedstr = strrep(str, '  ', ' ');
+    end
 end
 
 function assign(name, value)
