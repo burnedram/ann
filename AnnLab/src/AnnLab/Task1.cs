@@ -108,14 +108,14 @@ namespace AnnLab
 
         public static int JobsCompleted = 0, TotalJobs;
 
-        public static void Main(string[] args)
+        public static void Run(IEnumerable<string> args)
         {
-            if (args.Length != 1)
+            if (args.Count() != 1)
             {
                 Console.WriteLine("Usage: AnnLab <nRuns>");
                 return;
             }
-            int nRuns = int.Parse(args[0]);
+            int nRuns = int.Parse(args.First());
             if (nRuns < 0)
             {
                 Console.WriteLine("Usage: AnnLab <nRuns>");
