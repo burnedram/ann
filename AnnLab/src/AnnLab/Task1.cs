@@ -14,7 +14,7 @@ namespace AnnLab
     public class Task1
     {
 
-        static Matrix<double> InitWeights(int N, Matrix<int>[] patterns)
+        public static Matrix<double> InitWeights(int N, Matrix<int>[] patterns)
         {
             /* Naive version, does not take in consideration that W is symmetric
              * This is at least 2 times slower than the code below it
@@ -30,15 +30,15 @@ namespace AnnLab
             Matrix<int> W = new Matrix<int>(N, N);
             foreach (var mat in patterns)
             {
-                for (int i = 1; i < N; i++)
+                for (int i = 0; i < N; i++)
                     for (int j = i + 1; j < N; j++)
                         W[i, j] += mat[i, 0] * mat[j, 0];
             }
-            for (int i = 1; i < N; i++)
+            for (int i = 0; i < N; i++)
                 for (int j = i + 1; j < N; j++)
                     W[j, i] = W[i, j];
             Matrix<double> Wd = W;
-            return Wd.InPlace() / patterns.Length;
+            return Wd.InPlace() / N;
         }
 
         static void GenPatterns(Matrix<int>[] patterns, int N)
