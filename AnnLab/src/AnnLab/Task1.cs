@@ -11,21 +11,8 @@ using System.Threading.Tasks;
 
 namespace AnnLab
 {
-    public class Program
+    public class Task1
     {
-
-        static void PrintMatrix<T>(Matrix<T> matrix, TextWriter tw = null)
-        {
-            if (tw == null)
-                tw = Console.Out;
-            int maxLength = matrix.Flatten().Select(t => t.ToString().Length).Max();
-            for (int i = 0; i < matrix.Rows; i++)
-            {
-                for (int j = 0; j < matrix.Cols; j++)
-                    tw.Write(matrix[i, j].ToString().PadLeft(maxLength, ' ') + " ");
-                tw.WriteLine();
-            }
-        }
 
         static Matrix<double> InitWeights(int N, Matrix<int>[] patterns)
         {

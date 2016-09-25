@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Collections;
+using System.Text;
 
 namespace AnnLab
 {
@@ -502,5 +503,19 @@ namespace AnnLab
                 _matrix.ModifyInPlace = false;
             }
         }
+
+        public override string ToString()
+        {
+            int maxLength = Flatten().Select(t => t.ToString().Length).Max();
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < Rows; i++)
+            {
+                for (int j = 0; j < Cols; j++)
+                    sb.Append(_matrix[i, j].ToString().PadLeft(maxLength, ' ') + " ");
+                sb.AppendLine();
+            }
+            return sb.ToString();
+        }
     }
+
 }
