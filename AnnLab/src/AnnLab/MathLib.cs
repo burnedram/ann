@@ -16,6 +16,7 @@ namespace AnnLab
         TVal MatMul(TVal[,] A, TVal[,] B, int len, int i, int j);
 
         TVal Cast(int val);
+        bool Eq(TVal left, TVal right);
     }
 
     public static class MathLib
@@ -69,6 +70,11 @@ namespace AnnLab
         {
             return val;
         }
+        
+        public bool Eq(int left, int right)
+        {
+            return left == right;
+        }
     }
 
     public class DoubleMathLib : IMathLib<double>
@@ -109,6 +115,11 @@ namespace AnnLab
         public double Cast(int val)
         {
             return val;
+        }
+
+        public bool Eq(double left, double right)
+        {
+            return left == right;
         }
     }
 }

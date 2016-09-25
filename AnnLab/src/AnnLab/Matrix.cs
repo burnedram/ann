@@ -287,6 +287,18 @@ namespace AnnLab
             return this;
         }
 
+        public Matrix<TVal> Reshape(int newRows, int newCols)
+        {
+            if (ModifyInPlace)
+                throw new InvalidOperationException("did not expect ModifyInPlace to be true");
+            if (newRows * newCols != Rows * Cols)
+                throw new ArgumentException("must maintain total number of elements");
+
+            Matrix<TVal> B = new Matrix<TVal>(newRows, newCols);
+            Array.Copy(_matrix, B._matrix, _matrix.Length);
+            return B;
+        }
+
         public Matrix<TVal> SetAll(TVal val)
         {
             return UnaryOp(delegate { return val; });
@@ -449,6 +461,44 @@ namespace AnnLab
                         B[i, j] = A[j, i];
 
                 return B;
+            }
+        }
+
+        public static bool operator ==(Matrix<TVal> A, Matrix<TVal> B)
+        {
+            if (A.Rows != B.Rows || A.Cols != B.Cols)
+                return false;
+            for (int i = 0; i < A.Rows; i++)
+                for (int j = 0; j < A.Cols; j++)
+                    if (!A._math.Eq(A[i, j], B[i, j]))
+                        return false;
+            return true;
+        }
+
+        public static bool operator !=(Matrix<TVal> A, Matrix<TVal> B)
+        {
+            return !(A == B);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is Matrix<TVal>)
+            {
+                Matrix<TVal> that = (Matrix<TVal>)obj;
+                return this == that;
+            }
+            return base.Equals(obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                for (int i = 0; i < Rows; i++)
+                    for (int j = 0; j < Cols; j++)
+                        hash = hash * 23 + _matrix[i, j].GetHashCode();
+                return hash;
             }
         }
 
