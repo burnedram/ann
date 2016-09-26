@@ -86,26 +86,6 @@ namespace AnnLab
             return res;
         }
 
-        public static void Progress()
-        {
-            DateTimeOffset start = DateTimeOffset.UtcNow;
-            Console.WriteLine("Running " + TotalJobs + " jobs");
-            Thread.Sleep(1000);
-            TimeSpan estimatedTotal;
-            while(JobsCompleted < TotalJobs)
-            {
-                double done = JobsCompleted / (double)TotalJobs;
-                var elapsed = DateTimeOffset.UtcNow - start;
-                estimatedTotal = new TimeSpan((long)((DateTimeOffset.UtcNow - start).Ticks / done));
-                Console.WriteLine(
-                    $"[{DateTime.Now.ToString("HH:mm:ss")}] " +
-                    $"({done.ToString("0.%").PadLeft(4)}) " + 
-                    $"{JobsCompleted.ToString().PadLeft(TotalJobs.ToString().Length)} out of {TotalJobs} jobs completed, " +
-                    $"time left: {(estimatedTotal - elapsed).ToString("hh\\:mm\\:ss")}");
-                Thread.Sleep(Math.Min((int)(estimatedTotal.TotalMilliseconds / 50), 5 * 60 * 1000));
-            }
-        }
-
         public static int JobsCompleted = 0, TotalJobs;
 
         public static void Run(IEnumerable<string> args)
@@ -128,7 +108,7 @@ namespace AnnLab
             var runs = Enumerable.Repeat(jobs, nRuns).SelectMany(x => x);
             TotalJobs = runs.Count();
 
-            Thread progress = new Thread(Progress);
+            Thread progress = new Thread(() => Progress.ProgressFunc(ref TotalJobs, ref JobsCompleted));
             progress.Start();
 
             var results = runs.AsParallel().Select(RunJob).ToList();
