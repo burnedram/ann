@@ -1,7 +1,11 @@
 ﻿using AnnLab.Range;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace AnnLab
@@ -130,29 +134,139 @@ namespace AnnLab
                 state[i, 0] *= -1;
         }
 
+        class JobDescription
+        {
+            public double q;
+            public Matrix<double> W;
+        }
+
+        class JobResult
+        {
+            public double q;
+            public IEnumerable<bool> Corrects;
+            public double AverageCorrectRate;
+        }
+
+        static JobResult RunJob(JobDescription job)
+        {
+            var indices = Enumerable.Range(0, 160).ToList();
+            Matrix<int> state = new Matrix<int>(160), prevState = new Matrix<int>(160);
+            var corrects = Enumerable.Range(0, DIGITS.Length).Select(dig =>
+            {
+                state[Ranges.All, Ranges.All] = DIGITS[dig];
+                Distort(job.q, state);
+                do
+                {
+                    prevState[Ranges.All, Ranges.All] = state;
+                    indices.Shuffle();
+                    foreach (var i in indices)
+                    {
+                        state[i, 0] = Enumerable.Range(0, 160).Sum(j => job.W[i, j] * state[j, 0]) >= 0 ? 1 : -1;
+                    }
+                } while (state != prevState);
+                return state == DIGITS[dig];
+            }).ToList();
+            var res = new JobResult
+            {
+                q = job.q,
+                Corrects = corrects,
+                AverageCorrectRate = corrects.Count(b => b) / (double)DIGITS.Length
+            };
+            Interlocked.Increment(ref JobsCompleted);
+            return res;
+        }
+
+        public static int JobsCompleted = 0, TotalJobs;
+
+        static Dictionary<double, double[]> AggregateThrowsStackOverflowExceptionWorkaround(IEnumerable<IGrouping<double, JobResult>> resByJob, int nRuns)
+        {
+            var avgByJobByDigit = new Dictionary<double, double[]>();
+            foreach (var byJob in resByJob)
+            {
+                avgByJobByDigit[byJob.Key] = new double[DIGITS.Length];
+                foreach (var corrects in byJob.Select(res => res.Corrects))
+                {
+                    int digit = 0;
+                    foreach (var correct in corrects)
+                    {
+                        if (correct)
+                            avgByJobByDigit[byJob.Key][digit]++;
+                        digit++;
+                    }
+                }
+                for (int digit = 0; digit < DIGITS.Length; digit++)
+                    avgByJobByDigit[byJob.Key][digit] /= nRuns;
+            }
+            return avgByJobByDigit;
+        }
+
         public static void Run(IEnumerable<string> args)
         {
-            double q = 1;
-            Matrix<double> W = Task1.InitWeights(160, DIGITS);
-            Matrix<double> aoe = new Matrix<double>(10, 10);
-            Matrix<int> state = DIGITS[0];
-            Distort(q, state);
-            Matrix<int> prevState = new Matrix<int>(state);
-            var indices = Enumerable.Range(0, 160).ToList();
-
-            Console.WriteLine(state.Reshape(16, 10));
-            do
+#if DEBUG
+            args = new List<string> { "60000" };
+#endif
+            if (args.Count() < 1)
             {
-                indices.Shuffle();
-                foreach (var i in indices)
+                Console.WriteLine("Must specify nRuns");
+                return;
+            }
+            if (args.Count() > 2)
+            {
+                Console.WriteLine("Too many arguments");
+                return;
+            }
+            int nRuns = int.Parse(args.First());
+            if (nRuns < 0)
+            {
+                Console.WriteLine("nRuns can't be negative");
+                return;
+            }
+            int qSteps = 100;
+            if (args.Count() == 2)
+            {
+                qSteps = int.Parse(args.Last());
+                if (qSteps < 1)
                 {
-                    state[i, 0] = Enumerable.Range(0, 160).Sum(j => W[i, j] * state[j, 0]) >= 0 ? 1 : -1;
+                    Console.WriteLine("qSteps can't be zero or negative");
+                    return;
                 }
-                Matrix<int> swapState = state;
-                state = prevState;
-                prevState = swapState;
-            } while (state != prevState);
-            Console.WriteLine(state.Reshape(16, 10));
+            }
+            var qs = Enumerable.Range(0, qSteps).Select(step => step * 1d/qSteps);
+            Matrix<double> W = Task1.InitWeights(160, DIGITS);
+
+            var jobs = qs.Select(q => new JobDescription { q = q, W = W });
+            var runs = Enumerable.Repeat(jobs, nRuns).SelectMany(x => x);
+            TotalJobs = runs.Count();
+
+            Thread progress = new Thread(() => Progress.ProgressFunc(ref TotalJobs, ref JobsCompleted));
+            progress.Start();
+
+            var results = runs.AsParallel().Select(RunJob).ToList();
+            var resByJob = results.GroupBy(res => res.q);
+            var avgByJobByDigit = AggregateThrowsStackOverflowExceptionWorkaround(resByJob, nRuns);
+            var avgByJob = resByJob.Select(byJob => Tuple.Create(byJob.Key,
+                                                                 avgByJobByDigit[byJob.Key],
+                                                                 /* Throws StackOverflowException when nRuns is somewhat large, 
+                                                                  * avgByJobByDigit is a "manual" implementation that works
+                                                                 byJob.Select(res => res.Corrects)
+                                                                      .Aggregate(Enumerable.Repeat(0, DIGITS.Length), (acc, next) => acc.Zip(next, (a, b) => b ? a + 1 : a))
+                                                                      .Select(avg => avg / (double)nRuns),*/
+                                                                 byJob.Average(res => res.AverageCorrectRate)))
+                .OrderBy(avg => avg.Item1);
+
+            string filename = "task2_" + nRuns + "_" + qSteps + "_" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss") + ".txt";
+            Console.WriteLine("Writing to " + filename + "...");
+            using (StreamWriter sw = new StreamWriter(new FileStream(filename, FileMode.CreateNew), Encoding.ASCII))
+            {
+                foreach (var avg in avgByJob)
+                {
+                    sw.Write(avg.Item1.ToString(CultureInfo.InvariantCulture));
+                    foreach(var dig in avg.Item2)
+                        sw.Write(" " + dig.ToString(CultureInfo.InvariantCulture));
+                    sw.WriteLine(" " + avg.Item3.ToString(CultureInfo.InvariantCulture));
+                }
+            }
+            Console.WriteLine("Done!");
         }
 
     }
