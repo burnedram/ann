@@ -54,7 +54,7 @@ hold on;
 plot(f);
 legend({'Computed error rates', 'Fitted curve'}, 'Location', 'Best');
 xlabel('p/N');
-ylabel('P_e_r_r_o_r');
+ylabel('P_{error}');
 title(fittype);
 saveas(h, outfile);
 end

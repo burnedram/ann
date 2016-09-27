@@ -15,7 +15,7 @@ if path ~= ''
     outfile = strcat([path, filesep, outfile]);
 end
 
-h = figure;
+h = figure('Name', outname, 'NumberTitle', 'off');
 hold on;
 x = A(:, 1);
 legget = cell(6, 1);
@@ -31,7 +31,7 @@ legget{6} = 'Average';
 ylim([-0.025, 1.025]);
 legend(legget, 'Location', 'Best');
 xlabel('q');
-ylabel('P_c_o_r_r_e_c_t');
+ylabel('P_{correct}');
 title('Distorted digit recognition');
 saveas(h, outfile);
 
