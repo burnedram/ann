@@ -231,7 +231,7 @@ namespace AnnLab
                     return;
                 }
             }
-            var qs = Enumerable.Range(0, qSteps).Select(step => step * 1d/qSteps);
+            var qs = Enumerable.Range(0, qSteps).Select(step => step * 1d/(qSteps - 1));
             Matrix<double> W = Task1.InitWeights(160, DIGITS);
 
             var jobs = qs.Select(q => new JobDescription { q = q, W = W });
