@@ -26,6 +26,9 @@ namespace AnnLab
                 case "task2":
                     Task2.Run(args.Skip(1));
                     break;
+                case "task3":
+                    Task3.Run(args.Skip(1));
+                    break;
                 default:
                     Console.WriteLine("Unknown task \"" + args[0] + "\"");
                     break;
