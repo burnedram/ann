@@ -41,7 +41,7 @@ namespace AnnLab
             return Wd.InPlace() / N;
         }
 
-        static void GenPatterns(Matrix<int>[] patterns, int N)
+        public static void GenPatterns(Matrix<int>[] patterns, int N)
         {
             Random rng = new Random();
             for (int p = 0; p < patterns.Length; p++)

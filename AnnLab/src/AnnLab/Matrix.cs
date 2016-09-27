@@ -249,8 +249,8 @@ namespace AnnLab
         /// <param name="cols">M</param>
         public Matrix(int rows, int cols)
         {
-            if (rows <= 0 || cols <= 0)
-                throw new ArgumentOutOfRangeException("rows/cols must be larger than 0");
+            if (rows < 0 || cols < 0)
+                throw new ArgumentOutOfRangeException("rows/cols must be positive");
             _math = MathLib.Get<TVal>();
             Rows = rows;
             Cols = cols;

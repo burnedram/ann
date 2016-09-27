@@ -12,7 +12,7 @@ namespace AnnLab
             if (args.Length < 1)
             {
 #if DEBUG
-                Task2.Run(args.Skip(1));
+                Task3.Run(args.Skip(1));
 #else
                 Console.WriteLine("Please specify a task to run");
 #endif
