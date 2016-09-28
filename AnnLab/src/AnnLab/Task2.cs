@@ -274,7 +274,7 @@ namespace AnnLab
     public static class ShuffleExt
     {
         // Shameless copy pasta from http://stackoverflow.com/questions/5383498/shuffle-rearrange-randomly-a-liststring
-        public static void Shuffle<T>(this IList<T> list)
+        public static IList<T> Shuffle<T>(this IList<T> list)
         {
             int n = list.Count;
             Random rnd = new Random();
@@ -286,6 +286,7 @@ namespace AnnLab
                 list[k] = list[n];
                 list[n] = value;
             }
+            return list;
         }
     }
 }
