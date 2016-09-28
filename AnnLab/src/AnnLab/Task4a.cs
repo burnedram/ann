@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace AnnLab
@@ -52,36 +54,43 @@ namespace AnnLab
             output[0, j] = W.Col(j).Zip(pattern.Row(0), (wij, squigglyj) => wij * squigglyj).Sum() + bias[0, j];
         }
 
-        public static void Run(IEnumerable<string> args)
+        static double ErrorRate(Matrix<double>[] data, int[,] classes, Matrix<double>[] Ws, Matrix<double>[] biases, Matrix<double>[] neurons, double Beta)
         {
-#if DEBUG
-            args = new List<string> { "C:\\ann\\train_data_2016.txt", "C:\\ann\\valid_data_2016.txt" };
-#endif
-            if (args.Count() != 2)
+            return Enumerable.Range(0, data.Length).Average(layer =>
             {
-                Console.WriteLine("Usage: task4a <train_data> <valid_data>");
-                return;
-            }
+                int clazz = classes[layer, 0];
+                neurons[0][Ranges.All, Ranges.All] = data[layer];
+                FuncB(neurons[1], Ws[0], biases[0], neurons[0]);
+                neurons[1].InPlace().UnaryOp(bi => ActivationFuncG(bi, Beta));
+                return Math.Abs(clazz - (neurons[1][0, 0] >= 0 ? 1 : -1));
+            }) / 2;
+        }
 
-            int[] trainingClasses, validationClasses;
-            Matrix<double> trainingDataAll = ReadData(args.First(), out trainingClasses);
-            Matrix<double> validationDataAll = ReadData(args.Last(), out validationClasses);
-            NormalizeMeanAndVarInPlace(trainingDataAll, validationDataAll);
-            Matrix<double>[] trainingData = SplitData(trainingDataAll);
-            Matrix<double>[] validationData = SplitData(validationDataAll);
+        class JobDescription
+        {
+            public double Beta;
+            public double LearningRate;
+            public int[] Ns;
+            public Matrix<double>[] TrainingData, ValidationData;
+            public int[,] TrainingClasses, ValidationClasses;
+        }
+
+        class JobResult
+        {
+            public double Training, Validation;
+        }
+
+        static JobResult RunJob(JobDescription job)
+        {
             Random rng = new Random();
-
-            int[] Ns = new int[] { 2, 1 };
-            int nLayers = Ns.Length - 1;
-            double Beta = 0.5;
-            double learningRate = 0.01;
+            int nLayers = job.Ns.Length - 1;
             Matrix<double>[] Ws = new Matrix<double>[nLayers];
             Matrix<double>[] biases = new Matrix<double>[nLayers];
             Matrix<double>[] neurons = new Matrix<double>[nLayers + 1];
-            neurons[0] = new Matrix<double>(1, 2);
+            neurons[0] = new Matrix<double>(1, job.Ns[0]);
             for (int layer = 0; layer < nLayers; layer++)
             {
-                int rows = Ns[layer], cols = Ns[layer + 1];
+                int rows = job.Ns[layer], cols = job.Ns[layer + 1];
                 var W = Ws[layer] = new Matrix<double>(rows, cols);
                 var bias = biases[layer] = new Matrix<double>(1, cols);
                 neurons[layer + 1] = new Matrix<int>(1, cols);
@@ -96,58 +105,98 @@ namespace AnnLab
             int iters = 200000;
             for (int iter = 0; iter < iters; iter++)
             {
-                int layer = rng.Next(0, trainingData.Length);
-                neurons[0][Ranges.All, Ranges.All] = trainingData[layer];
-                int[] clazz = new int[] { trainingClasses[layer] };
+                int layer = rng.Next(0, job.TrainingData.Length);
+                neurons[0][Ranges.All, Ranges.All] = job.TrainingData[layer];
 
                 // Calculate output
                 FuncB(neurons[1], Ws[0], biases[0], neurons[0]);
-                neurons[1].InPlace().UnaryOp(bi => ActivationFuncG(bi, Beta));
+                neurons[1].InPlace().UnaryOp(bi => ActivationFuncG(bi, job.Beta));
 
-                for (int i = 0; i < Ns[0]; i++)
-                    for (int j = 0; j < Ns[1]; j++)
+                for (int i = 0; i < job.Ns[0]; i++)
+                    for (int j = 0; j < job.Ns[1]; j++)
                     {
-                        double error = clazz[j] - neurons[1][0, j];
-                        Ws[0][i, j] += error * learningRate * neurons[0][0, i];
+                        double error = job.TrainingClasses[layer, j] - neurons[1][0, j];
+                        Ws[0][i, j] += error * job.LearningRate * neurons[0][0, i];
 
                         // Update output
                         FuncB(neurons[1], Ws[0], biases[0], neurons[0], j);
-                        neurons[1][0, j] = ActivationFuncG(neurons[1][0, j], Beta);
+                        neurons[1][0, j] = ActivationFuncG(neurons[1][0, j], job.Beta);
                     }
-                for (int j = 0; j < Ns[1]; j++)
+                for (int j = 0; j < job.Ns[1]; j++)
                 {
-                    double error = clazz[j] - neurons[1][0, j];
-                    biases[0][0, j] += error * learningRate;
+                    double error = job.TrainingClasses[layer, j] - neurons[1][0, j];
+                    biases[0][0, j] += error * job.LearningRate;
 
                     // Update output
                     FuncB(neurons[1], Ws[0], biases[0], neurons[0], j);
-                    neurons[1][0, j] = ActivationFuncG(neurons[1][0, j], Beta);
+                    neurons[1][0, j] = ActivationFuncG(neurons[1][0, j], job.Beta);
                 }
             }
 
-            Console.WriteLine();
-            Console.WriteLine("a = [" + Ws[0][0, 0].ToString(CultureInfo.InvariantCulture) + "; " + Ws[0][1, 0].ToString(CultureInfo.InvariantCulture) + "];");
-            Console.WriteLine("b = " + biases[0][0, 0].ToString(CultureInfo.InvariantCulture) + ";");
+            double trainingErrorRate = ErrorRate(job.TrainingData, job.TrainingClasses, Ws, biases, neurons, job.Beta);
+            double validationErrorRate = ErrorRate(job.ValidationData, job.ValidationClasses, Ws, biases, neurons, job.Beta);
+            Interlocked.Increment(ref JobsCompleted);
+            return new JobResult
+            {
+                Training = trainingErrorRate,
+                Validation = validationErrorRate
+            };
+        }
 
-            double trainingErrorRate = Enumerable.Range(0, trainingData.Length).Average(layer =>
+        static int JobsCompleted = 0, TotalJobs;
+
+        public static void Run(IEnumerable<string> args)
+        {
+            if (args.Count() == 0)
             {
-                int clazz = trainingClasses[layer];
-                neurons[0][Ranges.All, Ranges.All] = trainingData[layer];
-                FuncB(neurons[1], Ws[0], biases[0], neurons[0]);
-                neurons[1].InPlace().UnaryOp(bi => ActivationFuncG(bi, Beta));
-                return Math.Abs(clazz - (neurons[1][0, 0] >= 0 ? 1 : -1));
-            }) / 2;
-            double validationErrorRate = Enumerable.Range(0, validationData.Length).Average(layer =>
+                args = new List<string> { "C:\\ann\\train_data_2016.txt", "C:\\ann\\valid_data_2016.txt" };
+            }
+            else if (args.Count() != 2)
             {
-                int clazz = validationClasses[layer];
-                neurons[0][Ranges.All, Ranges.All] = validationData[layer];
-                FuncB(neurons[1], Ws[0], biases[0], neurons[0]);
-                neurons[1].InPlace().UnaryOp(bi => ActivationFuncG(bi, Beta));
-                return Math.Abs(clazz - (neurons[1][0, 0] >= 0 ? 1 : -1));
-            }) / 2;
-            Console.WriteLine();
-            Console.WriteLine("Training error: " + trainingErrorRate.ToString("0.00%").PadLeft(7));
-            Console.WriteLine("Validation error: " + validationErrorRate.ToString("0.00%").PadLeft(7));
+                Console.WriteLine("Usage: task4a <train_data> <valid_data>");
+                return;
+            }
+
+            int[,] trainingClasses, validationClasses;
+            Matrix<double> trainingDataAll = ReadData(args.First(), out trainingClasses);
+            Matrix<double> validationDataAll = ReadData(args.Last(), out validationClasses);
+            NormalizeMeanAndVarInPlace(trainingDataAll, validationDataAll);
+            Matrix<double>[] trainingData = SplitData(trainingDataAll);
+            Matrix<double>[] validationData = SplitData(validationDataAll);
+
+            int nRuns = 1000;
+            int[] Ns = new int[] { 2, 1 };
+            double Beta = 0.5;
+            double learningRate = 0.01;
+
+            var job = new JobDescription
+            {
+                Beta = Beta,
+                LearningRate = learningRate,
+                Ns = Ns,
+                TrainingData = trainingData,
+                TrainingClasses = trainingClasses,
+                ValidationData = validationData,
+                ValidationClasses = validationClasses
+            };
+            var runs = Enumerable.Repeat(job, nRuns);
+            TotalJobs = runs.Count();
+
+            Thread progress = new Thread(() => Progress.ProgressFunc(ref TotalJobs, ref JobsCompleted));
+            progress.Start();
+
+            var results = runs.AsParallel().Select(RunJob).ToList();
+            double trainingErrorRate = results.Average(res => res.Training);
+            double validationErrorRate = results.Average(res => res.Validation);
+
+            string filename = "task4a_" + nRuns + "_" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss") + ".txt";
+            Console.WriteLine("Writing to " + filename + "...");
+            using (StreamWriter sw = new StreamWriter(new FileStream(filename, FileMode.CreateNew), Encoding.ASCII))
+            {
+                sw.WriteLine("Average training error: " + trainingErrorRate.ToString(CultureInfo.InvariantCulture));
+                sw.WriteLine("Average validation error: " + validationErrorRate.ToString(CultureInfo.InvariantCulture));
+            }
+            Console.WriteLine("Done!");
         }
 
         static Matrix<double>[] SplitData(Matrix<double> data)
@@ -162,11 +211,11 @@ namespace AnnLab
             return m;
         }
 
-        static Matrix<double> ReadData(string filePath, out int[] classes)
+        static Matrix<double> ReadData(string filePath, out int[,] classes)
         {
             int N = CountLines(filePath);
             Matrix<double> m = new Matrix<double>(N, N);
-            classes = new int[N];
+            classes = new int[N, 1];
             using (StreamReader sr = new StreamReader(new FileStream(filePath, FileMode.Open)))
             {
                 string line;
@@ -175,7 +224,7 @@ namespace AnnLab
                     var vals = line.Split(null);
                     m[i, 0] = double.Parse(vals[0], CultureInfo.InvariantCulture);
                     m[i, 1] = double.Parse(vals[1], CultureInfo.InvariantCulture);
-                    classes[i] = int.Parse(vals[2]);
+                    classes[i, 0] = int.Parse(vals[2]);
                 }
             }
             return m;
