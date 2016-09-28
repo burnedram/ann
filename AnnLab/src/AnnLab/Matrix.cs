@@ -556,12 +556,17 @@ namespace AnnLab
 
         public override string ToString()
         {
-            int maxLength = Flatten().Select(t => t.ToString().Length).Max();
+            return ToString("");
+        }
+
+        public string ToString(string format, IFormatProvider provider = null)
+        {
+            int maxLength = Flatten().Select(t => _math.ToString(t, format).Length).Max();
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < Rows; i++)
             {
                 for (int j = 0; j < Cols; j++)
-                    sb.Append(_matrix[i, j].ToString().PadLeft(maxLength, ' ') + " ");
+                    sb.Append(_math.ToString(_matrix[i, j], format).PadLeft(maxLength, ' ') + " ");
                 sb.AppendLine();
             }
             return sb.ToString();

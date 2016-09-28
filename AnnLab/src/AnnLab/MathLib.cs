@@ -17,6 +17,7 @@ namespace AnnLab
 
         TVal Cast(int val);
         bool Eq(TVal left, TVal right);
+        string ToString(TVal val, string format, IFormatProvider provider = null);
     }
 
     public static class MathLib
@@ -75,6 +76,11 @@ namespace AnnLab
         {
             return left == right;
         }
+
+        public string ToString(int val, string format, IFormatProvider provider = null)
+        {
+            return val.ToString(format, provider);
+        }
     }
 
     public class DoubleMathLib : IMathLib<double>
@@ -120,6 +126,11 @@ namespace AnnLab
         public bool Eq(double left, double right)
         {
             return left == right;
+        }
+
+        public string ToString(double val, string format, IFormatProvider provider = null)
+        {
+            return val.ToString(format, provider);
         }
     }
 }
