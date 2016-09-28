@@ -133,6 +133,10 @@ namespace AnnLab
                 }
             }
 
+            //Console.WriteLine("a = [" + Ws[0][0, 0].ToString(CultureInfo.InvariantCulture) + "; " + Ws[0][1, 0].ToString(CultureInfo.InvariantCulture) + "];");
+            //Console.WriteLine("b = " + biases[0][0, 0].ToString(CultureInfo.InvariantCulture) + ";");
+            //Environment.Exit(0);
+
             double trainingErrorRate = ErrorRate(job.TrainingData, job.TrainingClasses, Ws, biases, neurons, job.Beta);
             double validationErrorRate = ErrorRate(job.ValidationData, job.ValidationClasses, Ws, biases, neurons, job.Beta);
             Interlocked.Increment(ref JobsCompleted);
