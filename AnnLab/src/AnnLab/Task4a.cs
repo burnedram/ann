@@ -103,7 +103,7 @@ namespace AnnLab
             }) / 2;
         }
 
-        class JobDescription
+        public class JobDescription
         {
             public double Beta;
             public double LearningRate;
@@ -112,7 +112,7 @@ namespace AnnLab
             public int[,] TrainingClasses, ValidationClasses;
         }
 
-        class JobResult
+        public class JobResult
         {
             public double Training, Validation;
         }
@@ -213,7 +213,7 @@ namespace AnnLab
                 args = new List<string> { "C:\\ann\\train_data_2016.txt", "C:\\ann\\valid_data_2016.txt" }.Concat(args);
             }
 
-            nRuns = 1000;
+            nRuns = 100;
             if (args.Count() == 1 || args.Count() == 3)
             {
                 nRuns = int.Parse(args.Last());
