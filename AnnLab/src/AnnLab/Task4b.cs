@@ -7,11 +7,6 @@ namespace AnnLab
 {
     public class Task4b
     {
-        static double FuncGPrim(double b, double Beta)
-        {
-            double g = Math.Tanh(Beta * b);
-            return Beta * (1 - g * g);
-        }
 
         public static void Run(IEnumerable<string> args)
         {
@@ -29,11 +24,10 @@ namespace AnnLab
             double Beta = 0.5;
             double learningRate = 0.5;
             int[] Ns = { 2, hiddenNeurons, 1 };
-            Matrix<double>[] Ws, biases, neurons;
-            Task4a.InitWeightsBiasesNeurons(Ns,
-                out Ws, -0.2, 0.2,
-                out biases, -1, 1,
-                out neurons);
+            int nLayers = Ns.Length;
+            NeuralNetwork nn = new NeuralNetwork(Beta, Ns);
+            nn.RandomizeWeights(-0.2, 0.2);
+            nn.RandomizeBiases(-1, 1);
 
             var job = new Task4a.JobDescription
             {
@@ -50,8 +44,8 @@ namespace AnnLab
             int iters = 200000;
             for (int iter = 0; iter < iters; iter++)
             {
-                int layer = rng.Next(0, job.TrainingData.Length);
-                Task4a.FeedPattern(Ws, biases, neurons, job.TrainingData[layer], job.Beta);
+                int iPattern = rng.Next(0, job.TrainingData.Length);
+                nn.FeedPattern(job.TrainingData[iPattern]);
 
                 //bias += learingRate * deltaError
             }

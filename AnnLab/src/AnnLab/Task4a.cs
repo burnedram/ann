@@ -38,68 +38,13 @@ namespace AnnLab
             }
         }
 
-        public static void InitWeightsBiasesNeurons(int[] Ns, 
-            out Matrix<double>[] Ws, double wlow, double whigh, 
-            out Matrix<double>[] biases, double blow, double bhigh, 
-            out Matrix<double>[] neurons)
+        public static double ErrorRate(Matrix<double>[] data, int[,] classes, NeuralNetwork nn)
         {
-            Random rng = new Random();
-            int nLayers = Ns.Length - 1;
-            Ws = new Matrix<double>[nLayers];
-            biases = new Matrix<double>[nLayers];
-            neurons = new Matrix<double>[nLayers + 1];
-            neurons[0] = new Matrix<double>(1, Ns[0]);
-            for (int layer = 0; layer < nLayers; layer++)
+            return Enumerable.Range(0, data.Length).Average(iPattern =>
             {
-                int rows = Ns[layer], cols = Ns[layer + 1];
-                var W = Ws[layer] = new Matrix<double>(rows, cols);
-                var bias = biases[layer] = new Matrix<double>(1, cols);
-                neurons[layer + 1] = new Matrix<int>(1, cols);
-                for (int j = 0; j < cols; j++)
-                {
-                    bias[0, j] = rng.NextDouble() * (bhigh - blow) + blow;
-                    for (int i = 0; i < rows; i++)
-                        W[i, j] = rng.NextDouble() * (whigh - wlow) + wlow;
-                }
-            }
-        }
-
-        public static double FuncG(double b, double Beta)
-        {
-            return Math.Tanh(Beta * b);
-        }
-
-        public static void FuncB(Matrix<double> output, Matrix<double> W, Matrix<double> bias, Matrix<double> pattern)
-        {
-            for (int j = 0; j < output.Cols; j++)
-                output[0, j] = W.Col(j).Zip(pattern.Row(0), (wij, squigglyj) => wij * squigglyj).Sum() + bias[0, j];
-        }
-
-        public static void FeedPattern(Matrix<double>[] Ws, Matrix<double>[] biases, Matrix<double>[] neurons, Matrix<double> pattern, double Beta)
-        {
-            neurons[0][Ranges.All, Ranges.All] = pattern;
-            PropagateInput(Ws, biases, neurons, Beta);
-        }
-
-        public static void PropagateInput(Matrix<double>[] Ws, Matrix<double>[] biases, Matrix<double>[] neurons, double Beta)
-        {
-            for (int layer = 1; layer < neurons.Length; layer++)
-                UpdateLayer(Ws, biases, neurons, Beta, layer);
-        }
-
-        public static void UpdateLayer(Matrix<double>[] Ws, Matrix<double>[] biases, Matrix<double>[] neurons, double Beta, int layer)
-        {
-            FuncB(neurons[layer], Ws[layer - 1], biases[layer - 1], neurons[layer - 1]);
-            neurons[layer].InPlace().UnaryOp(bi => FuncG(bi, Beta));
-        }
-
-        static double ErrorRate(Matrix<double>[] data, int[,] classes, Matrix<double>[] Ws, Matrix<double>[] biases, Matrix<double>[] neurons, double Beta)
-        {
-            return Enumerable.Range(0, data.Length).Average(layer =>
-            {
-                int clazz = classes[layer, 0];
-                FeedPattern(Ws, biases, neurons, data[layer], Beta);
-                return Math.Abs(clazz - (neurons[1][0, 0] >= 0 ? 1 : -1));
+                int clazz = classes[iPattern, 0];
+                nn.FeedPattern(data[iPattern]);
+                return Math.Abs(clazz - (nn.Output[0, 0] >= 0 ? 1 : -1));
             }) / 2;
         }
 
@@ -120,36 +65,34 @@ namespace AnnLab
         static JobResult RunJob(JobDescription job)
         {
             Random rng = new Random();
-            Matrix<double>[] Ws, biases, neurons;
-            InitWeightsBiasesNeurons(job.Ns,
-                out Ws, -0.2, 0.2,
-                out biases, -1, 1,
-                out neurons);
+            NeuralNetwork nn = new NeuralNetwork(job.Beta, job.Ns);
+            nn.RandomizeWeights(-0.2, 0.2);
+            nn.RandomizeBiases(-1, 1);
 
             int iters = 200000;
             for (int iter = 0; iter < iters; iter++)
             {
-                int layer = rng.Next(0, job.TrainingData.Length);
-                FeedPattern(Ws, biases, neurons, job.TrainingData[layer], job.Beta);
+                int iPattern = rng.Next(0, job.TrainingData.Length);
+                nn.FeedPattern(job.TrainingData[iPattern]);
                 for (int i = 0; i < job.Ns[0]; i++)
                     for (int j = 0; j < job.Ns[1]; j++)
                     {
-                        double error = job.TrainingClasses[layer, j] - neurons[1][0, j];
-                        Ws[0][i, j] += error * job.LearningRate * neurons[0][0, i];
+                        double error = job.TrainingClasses[iPattern, j] - nn.Output[0, j];
+                        nn.Ws[0][i, j] += error * job.LearningRate * nn.Input[0, i];
                     }
                 for (int j = 0; j < job.Ns[1]; j++)
                 {
-                    double error = job.TrainingClasses[layer, j] - neurons[1][0, j];
-                    biases[0][0, j] += error * job.LearningRate;
+                    double error = job.TrainingClasses[iPattern, j] - nn.Output[0, j];
+                    nn.biases[0][0, j] += error * job.LearningRate;
                 }
             }
 
-            //Console.WriteLine("a = [" + Ws[0][0, 0].ToString(CultureInfo.InvariantCulture) + "; " + Ws[0][1, 0].ToString(CultureInfo.InvariantCulture) + "];");
-            //Console.WriteLine("b = " + biases[0][0, 0].ToString(CultureInfo.InvariantCulture) + ";");
+            //Console.WriteLine("a = [" + nn.Ws[0][0, 0].ToString(CultureInfo.InvariantCulture) + "; " + nn.Ws[0][1, 0].ToString(CultureInfo.InvariantCulture) + "];");
+            //Console.WriteLine("b = " + nn.biases[0][0, 0].ToString(CultureInfo.InvariantCulture) + ";");
             //Environment.Exit(0);
 
-            double trainingErrorRate = ErrorRate(job.TrainingData, job.TrainingClasses, Ws, biases, neurons, job.Beta);
-            double validationErrorRate = ErrorRate(job.ValidationData, job.ValidationClasses, Ws, biases, neurons, job.Beta);
+            double trainingErrorRate = ErrorRate(job.TrainingData, job.TrainingClasses, nn);
+            double validationErrorRate = ErrorRate(job.ValidationData, job.ValidationClasses, nn);
             Interlocked.Increment(ref JobsCompleted);
             return new JobResult
             {
@@ -214,7 +157,7 @@ namespace AnnLab
             }
 
             nRuns = 100;
-            if (args.Count() == 1 || args.Count() == 3)
+            if (args.Count() == 3)
             {
                 nRuns = int.Parse(args.Last());
                 if (nRuns <= 0)
