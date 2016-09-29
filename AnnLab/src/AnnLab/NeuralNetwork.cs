@@ -26,14 +26,14 @@ namespace AnnLab
         public int nTotalLayers { get; }
         public ReadOnlyCollection<Matrix<double>> Ws { get; }
         public ReadOnlyCollection<Matrix<double>> biases { get; }
-        public ReadOnlyCollection<Matrix<double>> neuronsPreG { get; }
+        public ReadOnlyCollection<Matrix<double>> localFields { get; }
         public ReadOnlyCollection<Matrix<double>> neurons { get; }
 
         public int InputIndex { get { return 0; } }
         public int OutputIndex { get; }
         public Matrix<double> Input { get; }
         public Matrix<double> Output { get; }
-        public Matrix<double> OutputPreG { get; }
+        public Matrix<double> OutputLocalField { get; }
 
         #region INIT
 
@@ -48,10 +48,10 @@ namespace AnnLab
 
             var _Ws = new List<Matrix<double>>(nTotalLayers - 1);
             var _biases = new List<Matrix<double>>(nTotalLayers - 1);
-            var _neuronsPreG = new List<Matrix<double>>(nTotalLayers);
+            var _localFields = new List<Matrix<double>>(nTotalLayers);
             var _neurons = new List<Matrix<double>>(nTotalLayers);
 
-            _neuronsPreG.Add(new Matrix<double>(1, Ns[0]));
+            _localFields.Add(new Matrix<double>(1, Ns[0]));
             _neurons.Add(new Matrix<double>(1, Ns[0]));
             Input = _neurons[0];
             for (int layer = 0; layer < OutputIndex; layer++)
@@ -59,15 +59,15 @@ namespace AnnLab
                 int rows = Ns[layer], cols = Ns[layer + 1];
                 _Ws.Add(new Matrix<double>(rows, cols));
                 _biases.Add(new Matrix<double>(1, cols));
-                _neuronsPreG.Add(new Matrix<int>(1, cols));
+                _localFields.Add(new Matrix<int>(1, cols));
                 _neurons.Add(new Matrix<int>(1, cols));
             }
             Output = _neurons[OutputIndex];
-            OutputPreG = _neuronsPreG[OutputIndex];
+            OutputLocalField = _localFields[OutputIndex];
 
             Ws = _Ws.AsReadOnly();
             biases = _biases.AsReadOnly();
-            neuronsPreG = _neuronsPreG.AsReadOnly();
+            localFields = _localFields.AsReadOnly();
             neurons = _neurons.AsReadOnly();
         }
 
@@ -124,7 +124,7 @@ namespace AnnLab
 
         void CalculateB(int layer)
         {
-            Matrix<double> output = neuronsPreG[layer];
+            Matrix<double> output = localFields[layer];
             Matrix<double> pattern = neurons[layer - 1];
             Matrix<double> W = Ws[layer - 1];
             Matrix<double> bias = biases[layer - 1];
@@ -134,7 +134,7 @@ namespace AnnLab
 
         void CalculateGB(int layer)
         {
-            neurons[layer][0, Ranges.All] = neuronsPreG[layer][0, Ranges.All].Select(bi => FuncG(bi, Beta)).AsRow();
+            neurons[layer][0, Ranges.All] = localFields[layer][0, Ranges.All].Select(bi => FuncG(bi, Beta)).AsRow();
         }
 
         #endregion

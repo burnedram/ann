@@ -105,7 +105,7 @@ namespace AnnLab
                 for (int j = 0; j < nn.Output.Cols; j++)
                 {
                     double error = job.TrainingClasses[iPattern, j] - nn.Output[0, j];
-                    error *= NeuralNetwork.FuncGPrim(nn.OutputPreG[0, j], nn.Beta);
+                    error *= NeuralNetwork.FuncGPrim(nn.OutputLocalField[0, j], nn.Beta);
                     deltas[nn.OutputIndex - 1][0, j] = error;
                 }
 
@@ -114,7 +114,7 @@ namespace AnnLab
                     for (int j = 0; j < nn.Ws[layer - 1].Cols; j++)
                     {
                         double error = nn.Ws[layer].Row(j).Zip(deltas[layer].Row(0), (wij, deltai) => wij * deltai).Sum();
-                        error *= NeuralNetwork.FuncGPrim(nn.neuronsPreG[layer][0, j], nn.Beta);
+                        error *= NeuralNetwork.FuncGPrim(nn.localFields[layer][0, j], nn.Beta);
                         deltas[layer - 1][0, j] = error;
                     }
 
