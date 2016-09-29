@@ -85,14 +85,7 @@ namespace AnnLab
 
             if (Dump)
             {
-                string filename = "task4a_dump_" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss") + ".txt";
-                Console.WriteLine("Writing to " + filename + "...");
-                using (StreamWriter sw = new StreamWriter(new FileStream(filename, FileMode.CreateNew), Encoding.ASCII))
-                {
-                    sw.WriteLine(nn.Ws[0][0, 0].ToString(CultureInfo.InvariantCulture) + " " + 
-                        nn.Ws[0][1, 0].ToString(CultureInfo.InvariantCulture) + " " + 
-                        nn.biases[0][0, 0].ToString(CultureInfo.InvariantCulture));
-                }
+                WriteDump("task4a_dump_" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss"), nn);
                 Interlocked.Increment(ref JobsCompleted);
                 return null;
             }
@@ -157,6 +150,21 @@ namespace AnnLab
                 }
             }
             Console.WriteLine("Done!");
+        }
+
+        public static void WriteDump(string name, NeuralNetwork nn)
+        {
+            string filename = name + ".txt";
+            Console.WriteLine("Writing to " + filename + "...");
+            using (StreamWriter sw = new StreamWriter(new FileStream(filename, FileMode.CreateNew), Encoding.ASCII))
+            {
+                for (int j = 0; j < nn.Ws[0].Cols; j++)
+                {
+                    sw.WriteLine(nn.Ws[0][0, j].ToString(CultureInfo.InvariantCulture) + " " +
+                        nn.Ws[0][1, j].ToString(CultureInfo.InvariantCulture) + " " +
+                        nn.biases[0][0, j].ToString(CultureInfo.InvariantCulture));
+                }
+            }
         }
 
         public static bool ParseArgs(string name, ref IEnumerable<string> args, out int nRuns, out bool dump)
