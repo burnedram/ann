@@ -72,12 +72,25 @@ namespace AnnLab
         public static void FuncB(Matrix<double> output, Matrix<double> W, Matrix<double> bias, Matrix<double> pattern)
         {
             for (int j = 0; j < output.Cols; j++)
-                FuncB(output, W, bias, pattern, j);
+                output[0, j] = W.Col(j).Zip(pattern.Row(0), (wij, squigglyj) => wij * squigglyj).Sum() + bias[0, j];
         }
 
-        public static void FuncB(Matrix<double> output, Matrix<double> W, Matrix<double> bias, Matrix<double> pattern, int j)
+        public static void FeedPattern(Matrix<double>[] Ws, Matrix<double>[] biases, Matrix<double>[] neurons, Matrix<double> pattern, double Beta)
         {
-            output[0, j] = W.Col(j).Zip(pattern.Row(0), (wij, squigglyj) => wij * squigglyj).Sum() + bias[0, j];
+            neurons[0][Ranges.All, Ranges.All] = pattern;
+            PropagateInput(Ws, biases, neurons, Beta);
+        }
+
+        public static void PropagateInput(Matrix<double>[] Ws, Matrix<double>[] biases, Matrix<double>[] neurons, double Beta)
+        {
+            for (int layer = 1; layer < neurons.Length; layer++)
+                UpdateLayer(Ws, biases, neurons, Beta, layer);
+        }
+
+        public static void UpdateLayer(Matrix<double>[] Ws, Matrix<double>[] biases, Matrix<double>[] neurons, double Beta, int layer)
+        {
+            FuncB(neurons[layer], Ws[layer - 1], biases[layer - 1], neurons[layer - 1]);
+            neurons[layer].InPlace().UnaryOp(bi => FuncG(bi, Beta));
         }
 
         static double ErrorRate(Matrix<double>[] data, int[,] classes, Matrix<double>[] Ws, Matrix<double>[] biases, Matrix<double>[] neurons, double Beta)
@@ -85,9 +98,7 @@ namespace AnnLab
             return Enumerable.Range(0, data.Length).Average(layer =>
             {
                 int clazz = classes[layer, 0];
-                neurons[0][Ranges.All, Ranges.All] = data[layer];
-                FuncB(neurons[1], Ws[0], biases[0], neurons[0]);
-                neurons[1].InPlace().UnaryOp(bi => FuncG(bi, Beta));
+                FeedPattern(Ws, biases, neurons, data[layer], Beta);
                 return Math.Abs(clazz - (neurons[1][0, 0] >= 0 ? 1 : -1));
             }) / 2;
         }
@@ -119,30 +130,17 @@ namespace AnnLab
             for (int iter = 0; iter < iters; iter++)
             {
                 int layer = rng.Next(0, job.TrainingData.Length);
-                neurons[0][Ranges.All, Ranges.All] = job.TrainingData[layer];
-
-                // Calculate output
-                FuncB(neurons[1], Ws[0], biases[0], neurons[0]);
-                neurons[1].InPlace().UnaryOp(bi => FuncG(bi, job.Beta));
-
+                FeedPattern(Ws, biases, neurons, job.TrainingData[layer], job.Beta);
                 for (int i = 0; i < job.Ns[0]; i++)
                     for (int j = 0; j < job.Ns[1]; j++)
                     {
                         double error = job.TrainingClasses[layer, j] - neurons[1][0, j];
                         Ws[0][i, j] += error * job.LearningRate * neurons[0][0, i];
-
-                        // Update output
-                        FuncB(neurons[1], Ws[0], biases[0], neurons[0], j);
-                        neurons[1][0, j] = FuncG(neurons[1][0, j], job.Beta);
                     }
                 for (int j = 0; j < job.Ns[1]; j++)
                 {
                     double error = job.TrainingClasses[layer, j] - neurons[1][0, j];
                     biases[0][0, j] += error * job.LearningRate;
-
-                    // Update output
-                    FuncB(neurons[1], Ws[0], biases[0], neurons[0], j);
-                    neurons[1][0, j] = FuncG(neurons[1][0, j], job.Beta);
                 }
             }
 
@@ -164,23 +162,16 @@ namespace AnnLab
 
         public static void Run(IEnumerable<string> args)
         {
-            if (args.Count() == 0)
-            {
-                args = new List<string> { "C:\\ann\\train_data_2016.txt", "C:\\ann\\valid_data_2016.txt" };
-            }
-            else if (args.Count() != 2)
-            {
-                Console.WriteLine("Usage: task4a <train_data> <valid_data>");
+            int nRuns;
+            if (!ParseArgs(ref args, out nRuns))
                 return;
-            }
 
             Matrix<double>[][] dataAll;
             int[][,] classesAll;
-            ReadNormalizeSplit(out classesAll, out dataAll, args.First(), args.Last());
+            ReadNormalizeSplit(out classesAll, out dataAll, args.First(), args.Skip(1).First());
             int[,] trainingClasses = classesAll[0], validationClasses = classesAll[1];
             Matrix<double>[] trainingData = dataAll[0], validationData = dataAll[1];
 
-            int nRuns = 1000;
             int[] Ns = new int[] { 2, 1 };
             double Beta = 0.5;
             double learningRate = 0.01;
@@ -215,6 +206,30 @@ namespace AnnLab
             Console.WriteLine("Done!");
         }
 
+        public static bool ParseArgs(ref IEnumerable<string> args, out int nRuns)
+        {
+            if (args.Count() < 2)
+            {
+                args = new List<string> { "C:\\ann\\train_data_2016.txt", "C:\\ann\\valid_data_2016.txt" }.Concat(args);
+            }
+
+            nRuns = 1000;
+            if (args.Count() == 1 || args.Count() == 3)
+            {
+                nRuns = int.Parse(args.Last());
+                if (nRuns <= 0)
+                {
+                    Console.WriteLine("nRuns must be largen than zero");
+                    return false;
+                }
+            }
+            else if (args.Count() > 3)
+            {
+                Console.WriteLine("Usage: task4a <nRuns | <train_data> <valid_data> <nRuns>>");
+                return false;
+            }
+            return true;
+        }
 
         public static void ReadNormalizeSplit(out int[][,] classes, out Matrix<double>[][] data, params string[] files)
         {
