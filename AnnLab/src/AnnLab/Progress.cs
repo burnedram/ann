@@ -12,7 +12,8 @@ namespace AnnLab
         {
             DateTimeOffset start = DateTimeOffset.UtcNow;
             Console.WriteLine("Running " + TotalJobs + " jobs");
-            Thread.Sleep(1000);
+            while (JobsCompleted == 0)
+                Thread.Sleep(1000);
             TimeSpan estimatedTotal;
             while (JobsCompleted < TotalJobs)
             {
@@ -24,7 +25,7 @@ namespace AnnLab
                     $"({done.ToString("0.%").PadLeft(4)}) " +
                     $"{JobsCompleted.ToString().PadLeft(TotalJobs.ToString().Length)} out of {TotalJobs} jobs completed, " +
                     $"time left: {(estimatedTotal - elapsed).ToString("hh\\:mm\\:ss")}");
-                Thread.Sleep(Math.Min((int)(estimatedTotal.TotalMilliseconds / 50), 5 * 60 * 1000));
+                Thread.Sleep(Math.Max(Math.Min((int)(estimatedTotal.TotalMilliseconds / 50), 5 * 60 * 1000), 1000));
             }
         }
     }
