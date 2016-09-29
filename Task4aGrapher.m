@@ -18,7 +18,7 @@ B = fscanf(fileID, spec, [3 Inf])';
 fclose(fileID);
 
 k = a(1)/(-a(2));
-m = b(1)/norm(a);
+m = sign(-a(2)) * b(1)/norm(a);
 
 C = [A; B];
 C(:, 1) = C(:, 1) - mean(C(:, 1));
@@ -70,8 +70,7 @@ scatter(B1(:, 1), B1(:, 2), 'xr');
 scatter(Bm1(:, 1), Bm1(:, 2), 'xb');
 savey = ylim;
 plot([-2, 2], [k*(-2) + m, k*2 + m]);
-plot([-2, 2], [k*(-2) - m, k*2 - m]);
 ylim(savey);
-legend({'Training = 1', 'Training = -1', 'Validation = 1', 'Validation = -1', 'y = k*x + m', 'y = k*x - m'});
+legend({'Training = 1', 'Training = -1', 'Validation = 1', 'Validation = -1', 'y = k*x + m'});
 title(sprintf('Training_{error} = %1.4f, Validation_{error} = %1.4f', errorRateA, errorRateB));
 end
