@@ -9,10 +9,12 @@ namespace AnnLab
     public class Task4b
     {
 
+        static bool Dump;
+
         public static void Run(IEnumerable<string> args)
         {
             int nRuns;
-            if (!Task4a.ParseArgs(ref args, out nRuns))
+            if (!Task4a.ParseArgs("task4b", ref args, out nRuns, out Dump))
                 return;
 
             Matrix<double>[][] dataAll;
@@ -41,7 +43,10 @@ namespace AnnLab
                 ValidationData = validationData,
                 ValidationClasses = validationClasses
             };
+        }
 
+        static void RunJob(Task4a.JobDescription job)
+        {
             Random rng = new Random();
             NeuralNetwork nn = new NeuralNetwork(job.Beta, job.Ns);
             nn.RandomizeWeights(-0.2, 0.2);
@@ -81,12 +86,7 @@ namespace AnnLab
                             nn.Ws[layer][i, j] += job.LearningRate * deltas[layer][0, j] * nn.neurons[layer][0, i];
                         nn.biases[layer][0, j] += job.LearningRate * deltas[layer][0, j];
                     }
-
-                if (iter % 1000 == 0)
-                    Console.WriteLine(Task4a.ErrorRate(trainingData, trainingClasses, nn).ToString("0.00%").PadLeft(7) + " " + iter.ToString().PadLeft(iters.ToString().Length));
             }
-
-            Console.WriteLine(Task4a.ErrorRate(trainingData, trainingClasses, nn).ToString("0.00%").PadLeft(7) + " " + iters);
 
             for (int j = 0; j < nn.Ws[0].Cols; j++)
             {

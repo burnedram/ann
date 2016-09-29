@@ -83,9 +83,19 @@ namespace AnnLab
                 }
             }
 
-            //Console.WriteLine("a = [" + nn.Ws[0][0, 0].ToString(CultureInfo.InvariantCulture) + "; " + nn.Ws[0][1, 0].ToString(CultureInfo.InvariantCulture) + "];");
-            //Console.WriteLine("b = " + nn.biases[0][0, 0].ToString(CultureInfo.InvariantCulture) + ";");
-            //Environment.Exit(0);
+            if (Dump)
+            {
+                string filename = "task4a_dump_" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss") + ".txt";
+                Console.WriteLine("Writing to " + filename + "...");
+                using (StreamWriter sw = new StreamWriter(new FileStream(filename, FileMode.CreateNew), Encoding.ASCII))
+                {
+                    sw.WriteLine(nn.Ws[0][0, 0].ToString(CultureInfo.InvariantCulture) + " " + 
+                        nn.Ws[0][1, 0].ToString(CultureInfo.InvariantCulture) + " " + 
+                        nn.biases[0][0, 0].ToString(CultureInfo.InvariantCulture));
+                }
+                Interlocked.Increment(ref JobsCompleted);
+                return null;
+            }
 
             double trainingErrorRate = ErrorRate(job.TrainingData, job.TrainingClasses, nn);
             double validationErrorRate = ErrorRate(job.ValidationData, job.ValidationClasses, nn);
@@ -97,12 +107,13 @@ namespace AnnLab
             };
         }
 
+        static bool Dump;
         static int JobsCompleted = 0, TotalJobs;
 
         public static void Run(IEnumerable<string> args)
         {
             int nRuns;
-            if (!ParseArgs(ref args, out nRuns))
+            if (!ParseArgs("task4a", ref args, out nRuns, out Dump))
                 return;
 
             Matrix<double>[][] dataAll;
@@ -132,39 +143,51 @@ namespace AnnLab
             progress.Start();
 
             var results = runs.AsParallel().Select(RunJob).ToList();
-            double trainingErrorRate = results.Average(res => res.Training);
-            double validationErrorRate = results.Average(res => res.Validation);
-
-            string filename = "task4a_" + nRuns + "_" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss") + ".txt";
-            Console.WriteLine("Writing to " + filename + "...");
-            using (StreamWriter sw = new StreamWriter(new FileStream(filename, FileMode.CreateNew), Encoding.ASCII))
+            if (!Dump)
             {
-                sw.WriteLine("Average training error: " + trainingErrorRate.ToString(CultureInfo.InvariantCulture));
-                sw.WriteLine("Average validation error: " + validationErrorRate.ToString(CultureInfo.InvariantCulture));
+                double trainingErrorRate = results.Average(res => res.Training);
+                double validationErrorRate = results.Average(res => res.Validation);
+
+                string filename = "task4a_" + nRuns + "_" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss") + ".txt";
+                Console.WriteLine("Writing to " + filename + "...");
+                using (StreamWriter sw = new StreamWriter(new FileStream(filename, FileMode.CreateNew), Encoding.ASCII))
+                {
+                    sw.WriteLine("Average training error: " + trainingErrorRate.ToString(CultureInfo.InvariantCulture));
+                    sw.WriteLine("Average validation error: " + validationErrorRate.ToString(CultureInfo.InvariantCulture));
+                }
             }
             Console.WriteLine("Done!");
         }
 
-        public static bool ParseArgs(ref IEnumerable<string> args, out int nRuns)
+        public static bool ParseArgs(string name, ref IEnumerable<string> args, out int nRuns, out bool dump)
         {
             if (args.Count() < 2)
             {
                 args = new List<string> { "C:\\ann\\train_data_2016.txt", "C:\\ann\\valid_data_2016.txt" }.Concat(args);
             }
 
+            dump = false;
             nRuns = 100;
             if (args.Count() == 3)
             {
+                if (args.Last().ToLower() == "dump")
+                {
+                    dump = true;
+                    nRuns = 1;
+                    return true;
+                }
                 nRuns = int.Parse(args.Last());
                 if (nRuns <= 0)
                 {
-                    Console.WriteLine("nRuns must be largen than zero");
+                    Console.WriteLine("nRuns must be larger than zero");
                     return false;
                 }
             }
             else if (args.Count() > 3)
             {
-                Console.WriteLine("Usage: task4a <nRuns | <train_data> <valid_data> <nRuns>>");
+                string tabs = new string(' ', name.Length);
+                Console.WriteLine("Usage: " + name + " <nRuns | dump>");
+                Console.WriteLine("       " + tabs + " <train_data> <valid_data> <nRuns | dump>");
                 return false;
             }
             return true;

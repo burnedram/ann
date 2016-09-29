@@ -1,4 +1,15 @@
-function [A, B, C] = Hagge(a, b)
+function [A, B, C] = Task4aGrapher(file)
+fileID = fopen(file);
+if fileID == -1
+    disp('Unable to open file');
+    return
+end
+spec = '%f %f %f'; %w00 w10 b00
+dump = fscanf(fileID, spec, [3 Inf])';
+a = dump(1, 1:2)';
+b = dump(1, 3);
+fclose(fileID);
+
 fileID = fopen('C:\\ann\\train_data_2016.txt', 'r');
 if fileID == -1
     disp('Unable to open file');
@@ -16,6 +27,13 @@ end
 spec = '%f %f %d'; %x y class
 B = fscanf(fileID, spec, [3 Inf])';
 fclose(fileID);
+
+[path, name, ~] = fileparts(file);
+outfile = sprintf('%s.png', name);
+outname = outfile;
+if path ~= ''
+    outfile = strcat([path, filesep, outfile]);
+end
 
 k = a(1)/(-a(2));
 m = sign(-a(2)) * b(1)/norm(a);
@@ -62,7 +80,7 @@ for i = 1:size(B, 1)
 end
 errorRateB = errorsB / size(B, 1);
 
-figure;
+h = figure('Name', outname, 'NumberTitle', 'off');
 hold on;
 scatter(A1(:, 1), A1(:, 2), 'or');
 scatter(Am1(:, 1), Am1(:, 2), 'ob');
@@ -73,4 +91,6 @@ plot([-2, 2], [k*(-2) + m, k*2 + m]);
 ylim(savey);
 legend({'Training = 1', 'Training = -1', 'Validation = 1', 'Validation = -1', 'y = k*x + m'});
 title(sprintf('Training_{error} = %1.4f, Validation_{error} = %1.4f', errorRateA, errorRateB));
+saveas(h, outfile);
+
 end
