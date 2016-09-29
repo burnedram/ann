@@ -29,6 +29,8 @@ namespace AnnLab
         public ReadOnlyCollection<Matrix<double>> neuronsPreG { get; }
         public ReadOnlyCollection<Matrix<double>> neurons { get; }
 
+        public int InputIndex { get { return 0; } }
+        public int OutputIndex { get; }
         public Matrix<double> Input { get; }
         public Matrix<double> Output { get; }
         public Matrix<double> OutputPreG { get; }
@@ -42,6 +44,7 @@ namespace AnnLab
             Beta = _Beta;
             Ns = _Ns;
             nTotalLayers = Ns.Length;
+            OutputIndex = nTotalLayers - 1;
 
             var _Ws = new List<Matrix<double>>(nTotalLayers - 1);
             var _biases = new List<Matrix<double>>(nTotalLayers - 1);
@@ -51,7 +54,7 @@ namespace AnnLab
             _neuronsPreG.Add(new Matrix<double>(1, Ns[0]));
             _neurons.Add(new Matrix<double>(1, Ns[0]));
             Input = _neurons[0];
-            for (int layer = 0; layer < nTotalLayers - 1; layer++)
+            for (int layer = 0; layer < OutputIndex; layer++)
             {
                 int rows = Ns[layer], cols = Ns[layer + 1];
                 _Ws.Add(new Matrix<double>(rows, cols));
@@ -59,8 +62,8 @@ namespace AnnLab
                 _neuronsPreG.Add(new Matrix<int>(1, cols));
                 _neurons.Add(new Matrix<int>(1, cols));
             }
-            Output = _neurons[nTotalLayers - 1];
-            OutputPreG = _neuronsPreG[nTotalLayers - 1];
+            Output = _neurons[OutputIndex];
+            OutputPreG = _neuronsPreG[OutputIndex];
 
             Ws = _Ws.AsReadOnly();
             biases = _biases.AsReadOnly();
@@ -109,7 +112,7 @@ namespace AnnLab
 
         public void PropagateInput()
         {
-            for (int layer = 1; layer < nTotalLayers; layer++)
+            for (int layer = 1; layer <= OutputIndex; layer++)
                 UpdateLayer(layer);
         }
 
