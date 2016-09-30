@@ -48,10 +48,9 @@ namespace AnnLab
 
             var _Ws = new List<Matrix<double>>(nTotalLayers - 1);
             var _biases = new List<Matrix<double>>(nTotalLayers - 1);
-            var _localFields = new List<Matrix<double>>(nTotalLayers);
+            var _localFields = new List<Matrix<double>>(nTotalLayers - 1);
             var _neurons = new List<Matrix<double>>(nTotalLayers);
 
-            _localFields.Add(new Matrix<double>(1, Ns[0]));
             _neurons.Add(new Matrix<double>(1, Ns[0]));
             Input = _neurons[0];
             for (int layer = 0; layer < OutputIndex; layer++)
@@ -63,7 +62,7 @@ namespace AnnLab
                 _neurons.Add(new Matrix<int>(1, cols));
             }
             Output = _neurons[OutputIndex];
-            OutputLocalField = _localFields[OutputIndex];
+            OutputLocalField = _localFields[OutputIndex - 1];
 
             Ws = _Ws.AsReadOnly();
             biases = _biases.AsReadOnly();
@@ -124,7 +123,7 @@ namespace AnnLab
 
         void CalculateB(int layer)
         {
-            Matrix<double> output = localFields[layer];
+            Matrix<double> output = localFields[layer - 1];
             Matrix<double> pattern = neurons[layer - 1];
             Matrix<double> W = Ws[layer - 1];
             Matrix<double> bias = biases[layer - 1];
@@ -134,7 +133,7 @@ namespace AnnLab
 
         void CalculateGB(int layer)
         {
-            neurons[layer][0, Ranges.All] = localFields[layer][0, Ranges.All].Select(bi => FuncG(bi, Beta)).AsRow();
+            neurons[layer][0, Ranges.All] = localFields[layer - 1][0, Ranges.All].Select(bi => FuncG(bi, Beta)).AsRow();
         }
 
         #endregion

@@ -39,7 +39,7 @@ namespace AnnLab
             Matrix<double>[] trainingData = dataAll[0], validationData = dataAll[1];
 
             double Beta = 0.5;
-            double learningRate = 0.5;
+            double learningRate = 0.01;
             int[] hiddenNeurons = { 0, 2, 4, 8, 16, 32 };
 
             var jobs = hiddenNeurons.Select(hn => new JobDescription
@@ -114,7 +114,7 @@ namespace AnnLab
                     for (int j = 0; j < nn.Ws[layer - 1].Cols; j++)
                     {
                         double error = nn.Ws[layer].Row(j).Zip(deltas[layer].Row(0), (wij, deltai) => wij * deltai).Sum();
-                        error *= NeuralNetwork.FuncGPrim(nn.localFields[layer][0, j], nn.Beta);
+                        error *= NeuralNetwork.FuncGPrim(nn.localFields[layer-1][0, j], nn.Beta);
                         deltas[layer - 1][0, j] = error;
                     }
 
