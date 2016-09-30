@@ -115,8 +115,8 @@ namespace AnnLab
             var resByJob = results
                 .GroupBy(res => Tuple.Create(res.Job.p, res.Job.N));
             var avgByJob = resByJob.Select(byJob => Tuple.Create(byJob.Key.Item1 / (double)byJob.Key.Item2,
-                                                                 byJob.Key,
-                                                                 byJob.Average(res => res.AverageErrorRate)))
+                     byJob.Key,
+                     byJob.Average(res => res.AverageErrorRate)))
                 .OrderBy(byJob => byJob.Item1);
 
 

@@ -245,13 +245,13 @@ namespace AnnLab
             var resByJob = results.GroupBy(res => res.q);
             var avgByJobByDigit = AggregateThrowsStackOverflowExceptionWorkaround(resByJob, nRuns);
             var avgByJob = resByJob.Select(byJob => Tuple.Create(byJob.Key,
-                                                                 avgByJobByDigit[byJob.Key],
-                                                                 /* Throws StackOverflowException when nRuns is somewhat large, 
-                                                                  * avgByJobByDigit is a "manual" implementation that works
-                                                                 byJob.Select(res => res.Corrects)
-                                                                      .Aggregate(Enumerable.Repeat(0, DIGITS.Length), (acc, next) => acc.Zip(next, (a, b) => b ? a + 1 : a))
-                                                                      .Select(avg => avg / (double)nRuns),*/
-                                                                 byJob.Average(res => res.AverageCorrectRate)))
+                     avgByJobByDigit[byJob.Key],
+                     /* Throws StackOverflowException when nRuns is somewhat large, 
+                      * avgByJobByDigit is a "manual" implementation that works
+                     byJob.Select(res => res.Corrects)
+                          .Aggregate(Enumerable.Repeat(0, DIGITS.Length), (acc, next) => acc.Zip(next, (a, b) => b ? a + 1 : a))
+                          .Select(avg => avg / (double)nRuns),*/
+                     byJob.Average(res => res.AverageCorrectRate)))
                 .OrderBy(avg => avg.Item1);
 
             string filename = "task2_" + nRuns + "_" + qSteps + "_" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss") + ".txt";
