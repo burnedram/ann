@@ -89,7 +89,7 @@ scatter(Bm1(:, 1), Bm1(:, 2), 'xb');
 savey = ylim;
 plot([-2, 2], [k*(-2) + m, k*2 + m]);
 ylim(savey);
-legend({'Training = 1', 'Training = -1', 'Validation = 1', 'Validation = -1', 'y = k*x + m'});
+legend({'Training = 1', 'Training = -1', 'Validation = 1', 'Validation = -1'});
 title(sprintf('Training_{error} = %1.4f, Validation_{error} = %1.4f', errorRateA, errorRateB));
 saveas(h, outfile);
 
