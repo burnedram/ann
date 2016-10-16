@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace AnnLab
+namespace AnnLab.Lab1
 {
     public class Task4b
     {
