@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace AnnLab.Lab2
@@ -50,6 +51,8 @@ namespace AnnLab.Lab2
             return bmu;
         }
 
+        private static int TotalJobs, JobsCompleted = 0;
+
         public static void Run(IEnumerable<string> args)
         {
 #if DEBUG
@@ -70,8 +73,13 @@ namespace AnnLab.Lab2
             int T = 200;
             double sigmaconv = 0.9;
             double nconv = 0.01;
+            int iters_order = (int)1E3, iters_conv = (int)5E4;
             string dateStr = DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss");
             string fileStr = sigma0 + "_" + dateStr;
+
+            TotalJobs = iters_order + iters_conv;
+            Thread progress = new Thread(() => Progress.ProgressFunc(ref TotalJobs, ref JobsCompleted));
+            progress.Start();
 
             Matrix<double> input = GenerateTriangleInput(1000, 1, 0, 0.5, 1);
             Matrix<double> weights = new Matrix<double>(100, 2);
@@ -82,7 +90,7 @@ namespace AnnLab.Lab2
             double[] hood = new double[weights.Rows];
 
             // ordering phase
-            for (int t = 0; t < 1E3; t++)
+            for (int t = 0; t < iters_order; t++)
             {
                 int target = rng.Next(input.Rows);
                 int bmu = BMU(input, weights, target);
@@ -94,6 +102,7 @@ namespace AnnLab.Lab2
                     weights[i, 0] += hood[i] * learningRate * (input[target, 0] - weights[i, 0]);
                     weights[i, 1] += hood[i] * learningRate * (input[target, 1] - weights[i, 1]);
                 }
+                JobsCompleted++;
             }
 
             using (StreamWriter sw = new StreamWriter(new FileStream("lab2task1_ordering_" + fileStr + ".txt", FileMode.CreateNew)))
@@ -104,7 +113,7 @@ namespace AnnLab.Lab2
 
             // convergance phase
             double[][] hoods = new double[input.Rows][];
-            for (int t = 0; t < 5E4; t++)
+            for (int t = 0; t < iters_conv; t++)
             {
                 int target = rng.Next(input.Rows);
                 int bmu = BMU(input, weights, target);
@@ -115,21 +124,25 @@ namespace AnnLab.Lab2
                     weights[i, 0] += hoods[bmu][i] * nconv * (input[target, 0] - weights[i, 0]);
                     weights[i, 1] += hoods[bmu][i] * nconv * (input[target, 1] - weights[i, 1]);
                 }
+                JobsCompleted++;
             }
-            
 
-            using (StreamWriter sw = new StreamWriter(new FileStream("lab2task1_convergance_" + fileStr + ".txt", FileMode.Create)))
+            string filename = "lab2task1_convergance_" + fileStr + ".txt";
+            Console.WriteLine("Writing to " + filename + "...");
+            using (StreamWriter sw = new StreamWriter(new FileStream(filename, FileMode.Create)))
             {
                 for (int i = 0; i < weights.Rows; i++)
                     sw.WriteLine(weights[i, 0].ToString(CultureInfo.InvariantCulture) + ", " + weights[i, 1].ToString(CultureInfo.InvariantCulture));
             }
             
-            string filename = "lab2task1_input_" + fileStr + ".txt";
+            filename = "lab2task1_input_" + fileStr + ".txt";
+            Console.WriteLine("Writing to " + filename + "...");
             using (StreamWriter sw = new StreamWriter(new FileStream(filename, FileMode.CreateNew)))
             {
                 for (int i = 0; i < input.Rows; i++)
                     sw.WriteLine(input[i, 0].ToString(CultureInfo.InvariantCulture) + ", " + input[i, 1].ToString(CultureInfo.InvariantCulture));
             }
+            Console.WriteLine("Done!");
         }
 
         private static Matrix<double> GenerateTriangleInput(int nPoints, double x1, double y1, double x2, double y2)
