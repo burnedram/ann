@@ -21,14 +21,14 @@ namespace AnnLab.Lab2
             }
         }
 
-        private static double NeighbourhoodWidth(int t, double T, double sigma0)
+        public static double NeighbourhoodWidth(int t, double tou, double sigma0)
         {
-            return sigma0 * Math.Exp(-t / T);
+            return sigma0 * Math.Exp(-t / tou);
         }
 
-        private static double LearningRate(int t, double T, double n0)
+        public static double LearningRate(int t, double tou, double n0)
         {
-            return n0 * Math.Exp(-t / T);
+            return n0 * Math.Exp(-t / tou);
         }
 
         private static int BMU(Matrix<double> input, Matrix<double> weights, int target)
@@ -82,7 +82,7 @@ namespace AnnLab.Lab2
             double[] hood = new double[weights.Rows];
 
             // ordering phase
-            for (int t = 0; t < 10E3; t++)
+            for (int t = 0; t < 1E3; t++)
             {
                 int target = rng.Next(input.Rows);
                 int bmu = BMU(input, weights, target);
@@ -104,7 +104,7 @@ namespace AnnLab.Lab2
 
             // convergance phase
             double[][] hoods = new double[input.Rows][];
-            for (int t = 0; t < 50E4; t++)
+            for (int t = 0; t < 5E4; t++)
             {
                 int target = rng.Next(input.Rows);
                 int bmu = BMU(input, weights, target);
