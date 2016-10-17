@@ -12,7 +12,7 @@ namespace AnnLab
             if (args.Length < 1)
             {
 #if DEBUG
-                Lab2.Task2.Run(args.Skip(1));
+                Lab2.Task3.Run(args.Skip(1));
 #else
                 Console.WriteLine("Please specify a task to run");
 #endif
@@ -40,6 +40,9 @@ namespace AnnLab
                     break;
                 case "lab2.task2":
                     Lab2.Task2.Run(args.Skip(1));
+                    break;
+                case "lab2.task3":
+                    Lab2.Task3.Run(args.Skip(1));
                     break;
                 default:
                     Console.WriteLine("Unknown task \"" + args[0] + "\"");

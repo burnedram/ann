@@ -133,7 +133,7 @@ namespace AnnLab.Lab2
             return weights;
         }
 
-        private static void NormalizeMeanAndVarInPlace(Matrix<double> wine)
+        public static void NormalizeMeanAndVarInPlace(Matrix<double> wine)
         {
             double[] mean = Enumerable.Range(0, wine.Cols).Select(j => wine.Col(j).Average()).ToArray();
             for (int i = 0; i < wine.Rows; i++)
