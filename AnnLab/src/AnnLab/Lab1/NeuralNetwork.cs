@@ -28,6 +28,7 @@ namespace AnnLab.Lab1
         public ReadOnlyCollection<Matrix<double>> biases { get; }
         public ReadOnlyCollection<Matrix<double>> localFields { get; }
         public ReadOnlyCollection<Matrix<double>> neurons { get; }
+        public ReadOnlyCollection<Matrix<double>> deltas { get; }
 
         public int InputIndex { get { return 0; } }
         public int OutputIndex { get; }
@@ -50,6 +51,7 @@ namespace AnnLab.Lab1
             var _biases = new List<Matrix<double>>(nTotalLayers - 1);
             var _localFields = new List<Matrix<double>>(nTotalLayers - 1);
             var _neurons = new List<Matrix<double>>(nTotalLayers);
+            var _deltas = new List<Matrix<double>>(nTotalLayers);
 
             _neurons.Add(new Matrix<double>(1, Ns[0]));
             Input = _neurons[0];
@@ -60,6 +62,7 @@ namespace AnnLab.Lab1
                 _biases.Add(new Matrix<double>(1, cols));
                 _localFields.Add(new Matrix<int>(1, cols));
                 _neurons.Add(new Matrix<int>(1, cols));
+                _deltas.Add(new Matrix<double>(rows, cols));
             }
             Output = _neurons[OutputIndex];
             OutputLocalField = _localFields[OutputIndex - 1];
@@ -68,6 +71,7 @@ namespace AnnLab.Lab1
             biases = _biases.AsReadOnly();
             localFields = _localFields.AsReadOnly();
             neurons = _neurons.AsReadOnly();
+            deltas = _deltas.AsReadOnly();
         }
 
         public void RandomizeWeights(double wlow, double whigh)
@@ -137,6 +141,37 @@ namespace AnnLab.Lab1
         }
 
         #endregion
+
+        public void Train(Matrix<double> pattern, int[] expectedClasses, double learningRate)
+        {
+            FeedPattern(pattern);
+
+            // Calculate output layer error
+            for (int j = 0; j < Output.Cols; j++)
+            {
+                double error = expectedClasses[j] - Output[0, j];
+                error *= FuncGPrim(OutputLocalField[0, j], Beta);
+                deltas[OutputIndex - 1][0, j] = error;
+            }
+
+            // Calculate preceding layer errors
+            for (int layer = OutputIndex - 1; layer >= 1; layer--)
+                for (int j = 0; j < Ws[layer - 1].Cols; j++)
+                {
+                    double error = Ws[layer].Row(j).Zip(deltas[layer].Row(0), (wij, deltai) => wij * deltai).Sum();
+                    error *= FuncGPrim(localFields[layer-1][0, j], Beta);
+                    deltas[layer - 1][0, j] = error;
+                }
+
+            // Update
+            for (int layer = 0; layer < nTotalLayers - 1; layer++)
+                for (int j = 0; j < Ws[layer].Cols; j++)
+                {
+                    for (int i = 0; i < Ws[layer].Rows; i++)
+                        Ws[layer][i, j] += learningRate * deltas[layer][0, j] * neurons[layer][0, i];
+                    biases[layer][0, j] += learningRate * deltas[layer][0, j];
+                }
+        }
 
     }
 }

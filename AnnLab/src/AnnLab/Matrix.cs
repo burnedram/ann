@@ -466,6 +466,10 @@ namespace AnnLab
 
         public static bool operator ==(Matrix<TVal> A, Matrix<TVal> B)
         {
+            if (object.ReferenceEquals(A, null) || object.ReferenceEquals(B, null))
+                return object.ReferenceEquals(A, B);
+            if (object.ReferenceEquals(A, B))
+                return true;
             if (A.Rows != B.Rows || A.Cols != B.Cols)
                 return false;
             for (int i = 0; i < A.Rows; i++)

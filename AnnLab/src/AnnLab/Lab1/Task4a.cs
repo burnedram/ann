@@ -38,11 +38,11 @@ namespace AnnLab.Lab1
             }
         }
 
-        public static double ErrorRate(Matrix<double>[] data, int[,] classes, NeuralNetwork nn)
+        public static double ErrorRate(Matrix<double>[] data, int[][] classes, NeuralNetwork nn)
         {
             return Enumerable.Range(0, data.Length).Average(iPattern =>
             {
-                int clazz = classes[iPattern, 0];
+                int clazz = classes[iPattern][0];
                 nn.FeedPattern(data[iPattern]);
                 return Math.Abs(clazz - (nn.Output[0, 0] >= 0 ? 1 : -1));
             }) / 2;
@@ -54,7 +54,7 @@ namespace AnnLab.Lab1
             public double LearningRate;
             public int[] Ns;
             public Matrix<double>[] TrainingData, ValidationData;
-            public int[,] TrainingClasses, ValidationClasses;
+            public int[][] TrainingClasses, ValidationClasses;
         }
 
         public class JobResult
@@ -76,7 +76,7 @@ namespace AnnLab.Lab1
                 nn.FeedPattern(job.TrainingData[iPattern]);
                 for (int j = 0; j < job.Ns[1]; j++)
                 {
-                    double error = job.TrainingClasses[iPattern, j] - nn.Output[0, j];
+                    double error = job.TrainingClasses[iPattern][j] - nn.Output[0, j];
                     for (int i = 0; i < job.Ns[0]; i++)
                         nn.Ws[0][i, j] += error * job.LearningRate * nn.Input[0, i];
                     nn.biases[0][0, j] += error * job.LearningRate;
@@ -110,9 +110,9 @@ namespace AnnLab.Lab1
                 return;
 
             Matrix<double>[][] dataAll;
-            int[][,] classesAll;
+            int[][][] classesAll;
             ReadNormalizeSplit(out classesAll, out dataAll, args.First(), args.Skip(1).First());
-            int[,] trainingClasses = classesAll[0], validationClasses = classesAll[1];
+            int[][] trainingClasses = classesAll[0], validationClasses = classesAll[1];
             Matrix<double>[] trainingData = dataAll[0], validationData = dataAll[1];
 
             int[] Ns = new int[] { 2, 1 };
@@ -201,11 +201,11 @@ namespace AnnLab.Lab1
             return true;
         }
 
-        public static void ReadNormalizeSplit(out int[][,] classes, out Matrix<double>[][] data, params string[] files)
+        public static void ReadNormalizeSplit(out int[][][] classes, out Matrix<double>[][] data, params string[] files)
         {
             Matrix<double>[] dataAll = new Matrix<double>[files.Length];
             data = new Matrix<double>[files.Length][];
-            classes = new int[files.Length][,];
+            classes = new int[files.Length][][];
             for (int i = 0; i < files.Length; i++)
                 dataAll[i] = ReadData(files[i], out classes[i]);
             NormalizeMeanAndVarInPlace(dataAll);
@@ -225,11 +225,11 @@ namespace AnnLab.Lab1
             return m;
         }
 
-        static Matrix<double> ReadData(string filePath, out int[,] classes)
+        static Matrix<double> ReadData(string filePath, out int[][] classes)
         {
             int N = CountLines(filePath);
-            Matrix<double> m = new Matrix<double>(N, N);
-            classes = new int[N, 1];
+            Matrix<double> m = new Matrix<double>(N, 2);
+            classes = new int[N][];
             using (StreamReader sr = new StreamReader(new FileStream(filePath, FileMode.Open)))
             {
                 string line;
@@ -238,7 +238,7 @@ namespace AnnLab.Lab1
                     var vals = line.Split(null);
                     m[i, 0] = double.Parse(vals[0], CultureInfo.InvariantCulture);
                     m[i, 1] = double.Parse(vals[1], CultureInfo.InvariantCulture);
-                    classes[i, 0] = int.Parse(vals[2]);
+                    classes[i] = new int[] { int.Parse(vals[2]) };
                 }
             }
             return m;

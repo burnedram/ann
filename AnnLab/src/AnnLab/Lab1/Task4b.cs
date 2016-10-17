@@ -33,9 +33,9 @@ namespace AnnLab.Lab1
                 return;
 
             Matrix<double>[][] dataAll;
-            int[][,] classesAll;
+            int[][][] classesAll;
             Task4a.ReadNormalizeSplit(out classesAll, out dataAll, args.First(), args.Skip(1).First());
-            int[,] trainingClasses = classesAll[0], validationClasses = classesAll[1];
+            int[][] trainingClasses = classesAll[0], validationClasses = classesAll[1];
             Matrix<double>[] trainingData = dataAll[0], validationData = dataAll[1];
 
             double Beta = 0.5;
@@ -99,33 +99,7 @@ namespace AnnLab.Lab1
             for (int iter = 0; iter < iters; iter++)
             {
                 int iPattern = rng.Next(0, job.TrainingData.Length);
-                nn.FeedPattern(job.TrainingData[iPattern]);
-
-                // Calculate output layer error
-                for (int j = 0; j < nn.Output.Cols; j++)
-                {
-                    double error = job.TrainingClasses[iPattern, j] - nn.Output[0, j];
-                    error *= NeuralNetwork.FuncGPrim(nn.OutputLocalField[0, j], nn.Beta);
-                    deltas[nn.OutputIndex - 1][0, j] = error;
-                }
-
-                // Calculate preceding layer errors
-                for (int layer = nn.OutputIndex - 1; layer >= 1; layer--)
-                    for (int j = 0; j < nn.Ws[layer - 1].Cols; j++)
-                    {
-                        double error = nn.Ws[layer].Row(j).Zip(deltas[layer].Row(0), (wij, deltai) => wij * deltai).Sum();
-                        error *= NeuralNetwork.FuncGPrim(nn.localFields[layer-1][0, j], nn.Beta);
-                        deltas[layer - 1][0, j] = error;
-                    }
-
-                // Update
-                for (int layer = 0; layer < nn.nTotalLayers - 1; layer++)
-                    for (int j = 0; j < nn.Ws[layer].Cols; j++)
-                    {
-                        for (int i = 0; i < nn.Ws[layer].Rows; i++)
-                            nn.Ws[layer][i, j] += job.LearningRate * deltas[layer][0, j] * nn.neurons[layer][0, i];
-                        nn.biases[layer][0, j] += job.LearningRate * deltas[layer][0, j];
-                    }
+                nn.Train(job.TrainingData[iPattern], job.TrainingClasses[iPattern], job.LearningRate);
             }
 
             if (Dump)
