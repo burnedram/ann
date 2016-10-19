@@ -81,7 +81,8 @@ namespace AnnLab.Lab2
             Thread progress = new Thread(() => Progress.ProgressFunc(ref TotalJobs, ref JobsCompleted));
             progress.Start();
 
-            Matrix<double> input = GenerateTriangleInput(1000, 1, 0, 0.5, 1);
+            //Matrix<double> input = GenerateTriangleInput(1000, 1, 0, 0.5, 1);
+            Matrix<double> input = GenerateCircleInput(1000);
             Matrix<double> weights = new Matrix<double>(100, 2);
             Random rng = new Random();
             for (int i = 0; i < weights.Rows; i++)
@@ -105,7 +106,9 @@ namespace AnnLab.Lab2
                 JobsCompleted++;
             }
 
-            using (StreamWriter sw = new StreamWriter(new FileStream("lab2task1_ordering_" + fileStr + ".txt", FileMode.CreateNew)))
+            string filename = "lab2task1_ordering_" + fileStr + ".txt";
+            Console.WriteLine("Writing to " + filename + "...");
+            using (StreamWriter sw = new StreamWriter(new FileStream(filename, FileMode.CreateNew)))
             {
                 for (int i = 0; i < weights.Rows; i++)
                     sw.WriteLine(weights[i, 0].ToString(CultureInfo.InvariantCulture) + ", " + weights[i, 1].ToString(CultureInfo.InvariantCulture));
@@ -127,7 +130,7 @@ namespace AnnLab.Lab2
                 JobsCompleted++;
             }
 
-            string filename = "lab2task1_convergance_" + fileStr + ".txt";
+            filename = "lab2task1_convergance_" + fileStr + ".txt";
             Console.WriteLine("Writing to " + filename + "...");
             using (StreamWriter sw = new StreamWriter(new FileStream(filename, FileMode.Create)))
             {
@@ -143,6 +146,22 @@ namespace AnnLab.Lab2
                     sw.WriteLine(input[i, 0].ToString(CultureInfo.InvariantCulture) + ", " + input[i, 1].ToString(CultureInfo.InvariantCulture));
             }
             Console.WriteLine("Done!");
+        }
+
+        private static Matrix<double> GenerateCircleInput(int nPoints)
+        {
+            Random rng = new Random();
+            Matrix<double> input = new Matrix<double>(nPoints, 2);
+            for (int i = 0; i < input.Rows; i++)
+            {
+                double angle = 2 * Math.PI * rng.NextDouble();
+                double radius = rng.NextDouble() + rng.NextDouble();
+                if (radius > 1)
+                    radius = 2 - radius;
+                input[i, 0] = radius * Math.Cos(angle);
+                input[i, 1] = radius * Math.Sin(angle);
+            }
+            return input;
         }
 
         private static Matrix<double> GenerateTriangleInput(int nPoints, double x1, double y1, double x2, double y2)
