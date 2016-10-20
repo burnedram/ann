@@ -174,9 +174,11 @@ namespace AnnLab.Lab1
             var byJob = results.GroupBy(res => Tuple.Create(res.Job.p, res.Job.N));
             var avgByN = byJob.GroupBy(job => job.Key.Item2, job => Tuple.Create(job.Key.Item1 / (double)job.Key.Item2, job.Average(res => res.m)));
 
+            string argStr = nRuns + "_" + aSteps;
+            string dateStr = DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss");
             foreach (var N in avgByN)
             {
-                string filename = "task3_" + nRuns + "_" + aSteps + "_" + N.Key + "_" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss") + ".txt";
+                string filename = "task3_" + argStr + "_" + N.Key + "_" + dateStr + ".txt";
                 Console.WriteLine("Writing to " + filename + "...");
                 using (StreamWriter sw = new StreamWriter(new FileStream(filename, FileMode.CreateNew), Encoding.ASCII))
                 {
@@ -186,6 +188,11 @@ namespace AnnLab.Lab1
                     }
                 }
             }
+
+            string errorLog = "task3_" + argStr + "_" + dateStr + ".log";
+            Console.WriteLine("Executing MATLAB script...");
+            if (!MATLAB.RunScript(errorLog, "Task3Grapher", "'task3_" + argStr + "_%d_" + dateStr + ".txt'", "[" + string.Join(" ", Ns) + "]"))
+                Console.WriteLine("An error occured while running MATLAB, check the log\n\tLog file:" + errorLog);
             Console.WriteLine("Done!");
         }
     }

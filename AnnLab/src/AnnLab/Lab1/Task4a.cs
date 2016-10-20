@@ -85,7 +85,7 @@ namespace AnnLab.Lab1
 
             if (Dump)
             {
-                WriteDump("task4a_dump_" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss"), nn);
+                WriteDump("task4a_dump_" + DateStr, nn);
                 Interlocked.Increment(ref JobsCompleted);
                 return null;
             }
@@ -102,12 +102,14 @@ namespace AnnLab.Lab1
 
         static bool Dump;
         static int JobsCompleted = 0, TotalJobs;
+        static string DateStr;
 
         public static void Run(IEnumerable<string> args)
         {
             int nRuns;
             if (!ParseArgs("task4a", ref args, out nRuns, out Dump))
                 return;
+            DateStr = DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss");
 
             Matrix<double>[][] dataAll;
             int[][][] classesAll;
@@ -141,13 +143,21 @@ namespace AnnLab.Lab1
                 double trainingErrorRate = results.Average(res => res.Training);
                 double validationErrorRate = results.Average(res => res.Validation);
 
-                string filename = "task4a_" + nRuns + "_" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss") + ".txt";
+                string filename = "task4a_" + nRuns + "_" + DateStr + ".txt";
                 Console.WriteLine("Writing to " + filename + "...");
                 using (StreamWriter sw = new StreamWriter(new FileStream(filename, FileMode.CreateNew), Encoding.ASCII))
                 {
                     sw.WriteLine("Average training error: " + trainingErrorRate.ToString(CultureInfo.InvariantCulture));
                     sw.WriteLine("Average validation error: " + validationErrorRate.ToString(CultureInfo.InvariantCulture));
                 }
+            }
+            else
+            {
+                string errorLog = "task4a_dump_" + DateStr + ".log";
+                string dumpname = "task4a_dump_" + DateStr + ".txt";
+                Console.WriteLine("Executing MATLAB script...");
+                if (!MATLAB.RunScript(errorLog, "Task4aGrapher", "'" + dumpname + "'"))
+                    Console.WriteLine("An error occured while running MATLAB, check the log\n\tLog file:" + errorLog);
             }
             Console.WriteLine("Done!");
         }

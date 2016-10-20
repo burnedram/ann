@@ -111,7 +111,8 @@ namespace AnnLab.Lab2
                 colors[bmu.Item1, bmu.Item2] = wineClasses[wineIndex];
             }
 
-            string filename = "lab2task2_" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss") + ".txt";
+            string dateStr = DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss");
+            string filename = "lab2task2_" + dateStr + ".txt";
             Console.WriteLine("Writing to " + filename + "...");
             using (StreamWriter sw = new StreamWriter(new FileStream(filename, FileMode.CreateNew)))
             {
@@ -119,6 +120,11 @@ namespace AnnLab.Lab2
                     for (int j = 0; j < colors.GetLength(1); j++)
                         sw.WriteLine(i + "," + j + "," + colors[i, j]);
             }
+
+            string errorLog = "lab2task2_" + dateStr + ".log";
+            Console.WriteLine("Executing MATLAB script...");
+            if (!MATLAB.RunScript(errorLog, "Lab2Task2Grapher", "'" + filename + "'"))
+                Console.WriteLine("An error occured while running MATLAB, check the log\n\tLog file:" + errorLog);
             Console.WriteLine("Done!");
         }
 

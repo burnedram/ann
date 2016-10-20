@@ -120,7 +120,8 @@ namespace AnnLab.Lab1
                 .OrderBy(byJob => byJob.Item1);
 
 
-            string filename = "result_" + nRuns + "_" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss") + ".txt";
+            string fileStr = nRuns + "_" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss");
+            string filename = "result_" + fileStr + ".txt";
             Console.WriteLine("Writing to " + filename + "...");
             using (StreamWriter sw = new StreamWriter(new FileStream(filename, FileMode.CreateNew), Encoding.ASCII))
             {
@@ -129,6 +130,11 @@ namespace AnnLab.Lab1
                     sw.WriteLine(avg.Item1.ToString(CultureInfo.InvariantCulture) + " " + avg.Item3.ToString(CultureInfo.InvariantCulture) + " " + avg.Item2.Item1 + " " + avg.Item2.Item2);
                 }
             }
+
+            string errorLog = "result_matlab_" + fileStr + ".log";
+            Console.WriteLine("Executing MATLAB script...");
+            if (!MATLAB.RunScript(errorLog, "Task1Grapher", "'" + filename +  "'"))
+                Console.WriteLine("An error occured while running MATLAB, check the log\n\tLog file:" + errorLog);
             Console.WriteLine("Done!");
         }
 

@@ -25,12 +25,14 @@ namespace AnnLab.Lab1
         static bool Dump;
 
         static int JobsCompleted = 0, TotalJobs;
+        static string DateStr;
 
         public static void Run(IEnumerable<string> args)
         {
             int nRuns;
             if (!Task4a.ParseArgs("task4b", ref args, out nRuns, out Dump))
                 return;
+            DateStr = DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss");
 
             Matrix<double>[][] dataAll;
             int[][][] classesAll;
@@ -62,7 +64,7 @@ namespace AnnLab.Lab1
             if (!Dump)
             {
                 var byNeurons = results.GroupBy(res => res.HiddenNeurons).OrderBy(n => n.Key);
-                string filename = "task4b_" + nRuns + "_" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss") + ".txt";
+                string filename = "task4b_" + nRuns + "_" + DateStr + ".txt";
                 Console.WriteLine("Writing to " + filename + "...");
                 using (StreamWriter sw = new StreamWriter(new FileStream(filename, FileMode.CreateNew), Encoding.ASCII))
                 {
@@ -75,6 +77,25 @@ namespace AnnLab.Lab1
                             trainingErrorRate.ToString(CultureInfo.InvariantCulture) + " " + 
                             validationErrorRate.ToString(CultureInfo.InvariantCulture));
                     }
+                }
+
+                string errorLog = "task4b_" + nRuns + "_" + DateStr + ".log";
+                Console.WriteLine("Executing MATLAB script...");
+                if (!MATLAB.RunScript(errorLog, "Task4bGrapher", "'" + filename + "'"))
+                    Console.WriteLine("An error occured while running MATLAB, check the log\n\tLog file:" + errorLog);
+            }
+            else
+            {
+                string errorRateFile = Directory.EnumerateFiles(Directory.GetCurrentDirectory(), "task4b_" + nRuns + "_*.txt").OrderBy(file => file).LastOrDefault();
+                if (errorRateFile == null)
+                    Console.WriteLine("Unable to find an error rates file, skipping MATLAB script...");
+                else
+                {
+                    string errorLog = "task4b_dump_" + DateStr + ".log";
+                    string dumpname = "task4b_dump_%d_" + DateStr + ".txt";
+                    Console.WriteLine("Executing MATLAB script...");
+                    if (!MATLAB.RunScript(errorLog, "Task4bExtra", "'" + dumpname + "'", "'" + errorRateFile + "'"))
+                        Console.WriteLine("An error occured while running MATLAB, check the log\n\tLog file:" + errorLog);
                 }
             }
             Console.WriteLine("Done!");
@@ -104,7 +125,7 @@ namespace AnnLab.Lab1
 
             if (Dump)
             {
-                Task4a.WriteDump("task4b_dump_" + job.HiddenNeurons + "_" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss"), nn);
+                Task4a.WriteDump("task4b_dump_" + job.HiddenNeurons + "_" + DateStr, nn);
                 Interlocked.Increment(ref JobsCompleted);
                 return null;
             }
