@@ -214,6 +214,11 @@ namespace AnnLab.Lab2
                     }
                 }
             }
+
+            string errorLog = "lab2task3_" + dateStr + ".log";
+            Console.WriteLine("Executing MATLAB script...");
+            if (!MATLAB.RunScript(errorLog, "Lab2Task3Grapher", "'" + ostFile + "'", "'lab2task3_%s_" + dateStr + ".txt'", "[" + string.Join(" ", kDumps) + "]"))
+                Console.WriteLine("An error occured while running MATLAB, check the log\n\tLog file:" + errorLog);
             Console.WriteLine("Done!");
         }
 
