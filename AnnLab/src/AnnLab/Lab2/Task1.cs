@@ -145,6 +145,12 @@ namespace AnnLab.Lab2
                 for (int i = 0; i < input.Rows; i++)
                     sw.WriteLine(input[i, 0].ToString(CultureInfo.InvariantCulture) + ", " + input[i, 1].ToString(CultureInfo.InvariantCulture));
             }
+
+            string errorLog = "lab2task1_matlab_" + dateStr + ".log";
+            Console.WriteLine("Executing MATLAB script...");
+            if (!MATLAB.RunScript(errorLog, "Lab2Task1InputGrapher", "'lab2task1_%s_%d_" + dateStr + ".txt'", sigma0.ToString()))
+                Console.WriteLine("An error occured while running MATLAB, check the log\n\tLog file:" + errorLog);
+
             Console.WriteLine("Done!");
         }
 
