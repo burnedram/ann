@@ -35,8 +35,8 @@ if path ~= ''
     outfile = strcat([path, filesep, outfile]);
 end
 
-k = a(1)/(-a(2));
-m = sign(-a(2)) * b(1)/norm(a);
+k = -a(1)/a(2);
+m = b(1)/a(2);
 
 C = [A; B];
 C(:, 1) = C(:, 1) - mean(C(:, 1));

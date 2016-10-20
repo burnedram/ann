@@ -76,8 +76,8 @@ for iNeuron = 1:length(neurons)
     savey = ylim;
 
     for iLine = 1:size(dump, 1)
-        k = a(1, iLine)/(-a(2, iLine));
-        m = sign(-a(2, iLine)) * b(1, iLine)/norm(a(:, iLine));
+        k = -a(1, iLine)/a(2, iLine);
+        m = b(1, iLine)/a(2, iLine);
         plot([-2, 2], [k*(-2) + m, k*2 + m]);
     end
     
