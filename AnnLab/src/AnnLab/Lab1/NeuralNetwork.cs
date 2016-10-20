@@ -132,7 +132,7 @@ namespace AnnLab.Lab1
             Matrix<double> W = Ws[layer - 1];
             Matrix<double> bias = biases[layer - 1];
             for (int j = 0; j < output.Cols; j++)
-                output[0, j] = W.Col(j).Zip(pattern.Row(0), (wij, squigglyj) => wij * squigglyj).Sum() + bias[0, j];
+                output[0, j] = W.Col(j).Zip(pattern.Row(0), (wij, squigglyj) => wij * squigglyj).Sum() - bias[0, j];
         }
 
         void CalculateGB(int layer)
@@ -169,7 +169,7 @@ namespace AnnLab.Lab1
                 {
                     for (int i = 0; i < Ws[layer].Rows; i++)
                         Ws[layer][i, j] += learningRate * deltas[layer][0, j] * neurons[layer][0, i];
-                    biases[layer][0, j] += learningRate * deltas[layer][0, j];
+                    biases[layer][0, j] -= learningRate * deltas[layer][0, j];
                 }
         }
 

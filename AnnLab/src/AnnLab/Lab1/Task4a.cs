@@ -73,14 +73,7 @@ namespace AnnLab.Lab1
             for (int iter = 0; iter < iters; iter++)
             {
                 int iPattern = rng.Next(0, job.TrainingData.Length);
-                nn.FeedPattern(job.TrainingData[iPattern]);
-                for (int j = 0; j < job.Ns[1]; j++)
-                {
-                    double error = job.TrainingClasses[iPattern][j] - nn.Output[0, j];
-                    for (int i = 0; i < job.Ns[0]; i++)
-                        nn.Ws[0][i, j] += error * job.LearningRate * nn.Input[0, i];
-                    nn.biases[0][0, j] += error * job.LearningRate;
-                }
+                nn.Train(job.TrainingData[iPattern], job.TrainingClasses[iPattern], job.LearningRate);
             }
 
             if (Dump)

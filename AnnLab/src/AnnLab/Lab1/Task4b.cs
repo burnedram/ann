@@ -86,11 +86,15 @@ namespace AnnLab.Lab1
             }
             else
             {
-                string errorRateFile = Directory.EnumerateFiles(Directory.GetCurrentDirectory(), "task4b_" + nRuns + "_*.txt").OrderBy(file => file).LastOrDefault();
+                string errorRateFile = Directory.EnumerateFiles(Directory.GetCurrentDirectory(), "task4b_*_*.txt")
+                    .Where(file => !file.StartsWith("task4b_dump_"))
+                    .OrderBy(file => file)
+                    .LastOrDefault();
                 if (errorRateFile == null)
                     Console.WriteLine("Unable to find an error rates file, skipping MATLAB script...");
                 else
                 {
+                    Console.WriteLine(errorRateFile);
                     string errorLog = "task4b_dump_" + DateStr + ".log";
                     string dumpname = "task4b_dump_%d_" + DateStr + ".txt";
                     Console.WriteLine("Executing MATLAB script...");
@@ -112,9 +116,6 @@ namespace AnnLab.Lab1
             NeuralNetwork nn = new NeuralNetwork(job.Beta, job.Ns);
             nn.RandomizeWeights(-0.2, 0.2);
             nn.RandomizeBiases(-1, 1);
-            Matrix<double>[] deltas = new Matrix<double>[nn.nTotalLayers - 1];
-            for (int layer = 1; layer <= nn.OutputIndex; layer++)
-                deltas[layer - 1] = new Matrix<double>(nn.neurons[layer].Rows, nn.neurons[layer].Cols);
 
             int iters = 200000;
             for (int iter = 0; iter < iters; iter++)
